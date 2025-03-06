@@ -2,7 +2,9 @@
   "nodes": {
     "blueprint": {
       "inputs": {
-        "nixpkgs": "nixpkgs",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
         "systems": "systems"
       },
       "locked": {
@@ -41,22 +43,6 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1711703276,
-        "narHash": "sha256-iMUFArF0WCatKK6RzfUJknjem0H9m4KgorO/p3Dopkk=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "d8fe5e6c92d0d190646fb9f1056741a229980089",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
         "lastModified": 1741231816,
         "narHash": "sha256-vd+4Nx4rS7PkxWMBNB+PZsaxjF3ZSvhxzFx2PVKXG68=",
         "type": "tarball",
@@ -71,7 +57,7 @@
       "inputs": {
         "blueprint": "blueprint",
         "devshell": "devshell",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs"
       }
     },
     "systems": {
