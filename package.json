@@ -11,5 +11,12 @@
     "@types/node": "^22.13.16",
     "tslog": "^4.9.3",
     "viem": "^2.24.3"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.1",
+    "@types/mocha": "^10.0.10",
+    "chai": "^5.2.0",
+    "mocha": "^11.1.0",
+    "ts-mocha": "^11.1.0"
   }
 }
