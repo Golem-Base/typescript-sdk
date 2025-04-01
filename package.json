@@ -8,8 +8,8 @@
   "license": "ISC",
   "packageManager": "pnpm@10.5.2",
   "dependencies": {
-    "@types/node": "^22.13.10",
+    "@types/node": "^22.13.16",
     "tslog": "^4.9.3",
-    "viem": "^2.23.15"
+    "viem": "^2.24.3"
   }
 }
