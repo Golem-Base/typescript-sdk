@@ -5,13 +5,14 @@ import {
   publicActions,
   toHex,
   TransactionReceipt,
+  checksumAddress,
   type Hex,
 } from 'viem'
 import { privateKeyToAccount, nonceManager, } from 'viem/accounts'
 import RLP from './rlp'
 import { ILogObj, Logger } from "tslog";
 
-export { Hex, toHex, TransactionReceipt }
+export { checksumAddress, Hex, toHex, TransactionReceipt }
 
 const storageAddress = '0x0000000000000000000000000000000060138453'
 
@@ -24,11 +25,23 @@ type GolemGetStorageValueSchema = {
 }
 
 type GolemGetFullEntityInputParams = Hex
-export type GolemGetFullEntityReturnType = any // TODO: more precise type
+export type GolemGetFullEntityReturnType = {
+  expiresAtBlock: number,
+  payload: string,
+  stringAnnotations: {
+    key: string,
+    value: string,
+  },
+  numericAnnotations: {
+    key: string,
+    value: number,
+  },
+  owner: Hex,
+}
 type GolemGetFullEntitySchema = {
   Method: 'golembase_getFullEntity'
-  Parameters: [GolemGetStorageValueInputParams]
-  ReturnType: GolemGetStorageValueReturnType
+  Parameters: [GolemGetFullEntityInputParams]
+  ReturnType: GolemGetFullEntityReturnType
 }
 
 type GolemGetEntitiesToExpireAtBlockInputParams = number
