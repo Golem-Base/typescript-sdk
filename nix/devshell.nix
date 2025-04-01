@@ -6,6 +6,7 @@ perSystem.devshell.mkShell {
     pkgs.nodejs
     pkgs.typescript
     pkgs.nodePackages.ts-node
+    perSystem.self.ts-mocha
     pkgs.mkdocs
   ];
 }
