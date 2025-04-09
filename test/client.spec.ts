@@ -169,11 +169,10 @@ describe("the golem-base client", () => {
     expect(value).to.eql(Buffer.from(data, 'binary').toString('base64'))
   })
 
-  it("should be able to retrieve the full entity", async () => {
-    const value = await client.getFullEntity(entityKey)
+  it("should be able to retrieve the entity metadata", async () => {
+    const value = await client.getEntityMetaData(entityKey)
     expect(value).to.eql({
       expiresAtBlock: expiryBlock,
-      payload: Buffer.from(data, 'binary').toString('base64'),
       stringAnnotations: [{ key: "key", value: stringAnnotation }],
       numericAnnotations: [{ key: "ix", value: 2 }],
       // We get back a non-checksum-encoded address, so we convert back to all lower case here

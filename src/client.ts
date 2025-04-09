@@ -24,8 +24,8 @@ type GolemGetStorageValueSchema = {
   ReturnType: GolemGetStorageValueReturnType
 }
 
-type GolemGetFullEntityInputParams = Hex
-export type GolemGetFullEntityReturnType = {
+type GolemGetEntityMetaDataInputParams = Hex
+export type GolemGetEntityMetaDataReturnType = {
   expiresAtBlock: number,
   payload: string,
   stringAnnotations: {
@@ -38,10 +38,10 @@ export type GolemGetFullEntityReturnType = {
   },
   owner: Hex,
 }
-type GolemGetFullEntitySchema = {
-  Method: 'golembase_getFullEntity'
-  Parameters: [GolemGetFullEntityInputParams]
-  ReturnType: GolemGetFullEntityReturnType
+type GolemGetEntityMetaDataSchema = {
+  Method: 'golembase_getEntityMetaData'
+  Parameters: [GolemGetEntityMetaDataInputParams]
+  ReturnType: GolemGetEntityMetaDataReturnType
 }
 
 type GolemGetEntitiesToExpireAtBlockInputParams = number
@@ -154,9 +154,9 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
     /**
      * Get the full entity information
      */
-    async getFullEntity(args: GolemGetFullEntityInputParams): Promise<GolemGetFullEntityReturnType> {
-      return client.request<GolemGetFullEntitySchema>({
-        method: 'golembase_getFullEntity',
+    async getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<GolemGetEntityMetaDataReturnType> {
+      return client.request<GolemGetEntityMetaDataSchema>({
+        method: 'golembase_getEntityMetaData',
         params: [args]
       })
     },
