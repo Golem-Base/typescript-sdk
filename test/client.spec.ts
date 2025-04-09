@@ -189,13 +189,13 @@ describe("the golem-base client", () => {
   it("should be able to update entities", async () => {
     const newData = generateRandomString(32)
     const newStringAnnotation = generateRandomString(32)
-    //log.info(await client.updateEntitiesAndWaitForReceipt([{
-    //  entityKey,
-    //  ttl: 10,
-    //  data: newData,
-    //  stringAnnotations: [["key", newStringAnnotation]],
-    //  numericAnnotations: [["ix", 2]],
-    //}]))
+    log.info(await client.updateEntitiesAndWaitForReceipt([{
+      entityKey,
+      ttl: 10,
+      data: newData,
+      stringAnnotations: [["key", newStringAnnotation]],
+      numericAnnotations: [["ix", 2]],
+    }]))
     expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount, "wrong number of entities owned")
   })
 
