@@ -4,15 +4,14 @@ import {
 } from "chai"
 import { describe, it } from "node:test"
 import {
-  type ILogObj,
+  ILogObj,
   Logger
 } from "tslog"
 import {
-  createClient,
-  GolemBaseClient,
-  type Hex,
+  internal,
   type GolemBaseCreate,
-} from "../src/index"
+  type Hex
+} from "../../src/index"
 
 const log = new Logger<ILogObj>({
   type: "pretty",
@@ -20,60 +19,65 @@ const log = new Logger<ILogObj>({
 })
 
 function generateRandomString(length: number): string {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  let result = ''
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
   for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length))
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
-  return result
+  return result;
 }
 
-const keyBytes = fs.readFileSync('/home/ramses/.config/golembase/private.key')
+
+async function numOfEntitiesOwnedBy(client: any, owner: internal.Hex): Promise<number> {
+  const entitiesOwned = await client.getEntitiesOfOwner(owner)
+  log.info("Entities owned:", entitiesOwned)
+  log.info("Number of entities owned:", entitiesOwned.length)
+  return entitiesOwned.length
+}
+
+async function deleteAllEntitiesWithIndex(client: any, index: number): Promise<internal.TransactionReceipt[]> {
+  log.debug("Deleting entities with index", index)
+  const queryResult = await client.queryEntities(`ix = ${index}`)
+  log.debug("deleteEntitiesWithIndex, queryResult", queryResult)
+  return Promise.all(
+    queryResult.map(async (res: internal.GolemQueryEntitiesReturnType) => {
+      log.debug("Deleting entity with key", res.key)
+      await client.deleteEntitiesAndWaitForReceipt([res.key])
+    })
+  )
+}
+
+const keyBytes = fs.readFileSync('/home/ramses/.config/golembase/private.key');
+const client = internal.createClient(keyBytes, 'http://localhost:8545', log)
+
+async function ownerAddress(): Promise<internal.Hex> {
+  return (await client.getAddresses())[0]
+}
+
+const data = generateRandomString(32)
+const stringAnnotation = generateRandomString(32)
 
 let entitiesOwnedCount = 0
-let entityKey: Hex = "0x"
-let expiryBlock: number
+let entityKey: Hex
+let expirationBlock: number
 
-describe("the golem-base client", () => {
-  const client = createClient(keyBytes, 'http://localhost:8545', log)
-
-  const data = generateRandomString(32)
-  const stringAnnotation = generateRandomString(32)
-
-  async function numOfEntitiesOwned(client: GolemBaseClient): Promise<number> {
-    const entitiesOwned = await client.getEntitiesOfOwner(await client.getOwnerAddress())
-    log.info("Entities owned:", entitiesOwned)
-    log.info("Number of entities owned:", entitiesOwned.length)
-    return entitiesOwned.length
-  }
-
-  async function deleteAllEntitiesWithIndex(client: GolemBaseClient, index: number): Promise<void[]> {
-    log.debug("Deleting entities with index", index)
-    const queryResult = await client.queryEntities(`ix = ${index}`)
-    log.debug("deleteEntitiesWithIndex, queryResult", queryResult)
-    return Promise.all(
-      queryResult.map(async (res) => {
-        log.debug("Deleting entity with key", res.key)
-        await client.deleteEntities([res.key])
-      })
-    )
-  }
-
-  it("should delete all existing entities", async () => {
-    await client.deleteEntities(await client.getAllEntityKeys())
+describe("the internal golem-base client", () => {
+  it("should delete all entities", async () => {
+    await client.deleteEntitiesAndWaitForReceipt(await client.getAllEntityKeys())
   })
 
   it("should be able to create entities", async () => {
-    const receipt = await client.createEntities([{
+    const hash = await client.createEntities([{
       data: generateRandomString(32),
       ttl: 25,
       stringAnnotations: [["key", generateRandomString(32)]],
       numericAnnotations: [["ix", 1]]
     }])
-    expect(receipt).to.exist
+    expect(hash).to.exist
+    await client.waitForTransactionReceipt({ hash })
 
     entitiesOwnedCount += 1
-    expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount)
+    expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount)
   })
 
   it("should be able to create multiple entities", async () => {
@@ -97,14 +101,15 @@ describe("the golem-base client", () => {
         numericAnnotations: [["ix", 3]]
       }
     ]
-    const receipts = await client.createEntities(creates)
-    entitiesOwnedCount += creates.length
+    const receipts = await client.createEntitiesAndWaitForReceipt(creates)
+    entitiesOwnedCount += creates.length;
     // Save this key for later
-    entityKey = receipts[0].entityKey
+    ({ entityKey, expirationBlock } = receipts.logs.map(txlog => ({
+      entityKey: txlog.topics[1] as Hex,
+      expirationBlock: parseInt(txlog.data),
+    }))[0])
 
-    expiryBlock = receipts[0].expirationBlock
-
-    expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount)
+    expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount)
   })
 
   it("should have the right amount of entities", async () => {
@@ -119,12 +124,12 @@ describe("the golem-base client", () => {
   })
 
   it("should be able to retrieve entities based on string annotations", async () => {
-    const entities = await client.getEntitiesForStringAnnotationValue("key", stringAnnotation)
+    const entities = await client.getEntitiesForStringAnnotationValue({ key: "key", value: stringAnnotation })
     expect(entities).to.eql([entityKey])
   })
 
   it("should be able to retrieve entities based on numeric annotations", async () => {
-    const entities = await client.getEntitiesForNumericAnnotationValue("ix", 2)
+    const entities = await client.getEntitiesForNumericAnnotationValue({ key: "ix", value: 2 })
     expect(entities).to.eql([entityKey])
   })
 
@@ -160,16 +165,16 @@ describe("the golem-base client", () => {
   it("should be able to retrieve the entity metadata", async () => {
     const value = await client.getEntityMetaData(entityKey)
     expect(value).to.eql({
-      expiresAtBlock: expiryBlock,
+      expiresAtBlock: expirationBlock,
       stringAnnotations: [{ key: "key", value: stringAnnotation }],
       numericAnnotations: [{ key: "ix", value: 2 }],
       // We get back a non-checksum-encoded address, so we convert back to all lower case here
-      owner: (await client.getOwnerAddress()).toLowerCase()
+      owner: (await ownerAddress()).toLowerCase()
     })
   })
 
   it("should be able to retrieve the entities that expire at a given block", async () => {
-    const entities = await client.getEntitiesToExpireAtBlock(BigInt(expiryBlock))
+    const entities = await client.getEntitiesToExpireAtBlock(BigInt(expirationBlock))
     expect(entities).to.eql([
       entityKey
     ])
@@ -178,26 +183,26 @@ describe("the golem-base client", () => {
   it("should be able to update entities", async () => {
     const newData = generateRandomString(32)
     const newStringAnnotation = generateRandomString(32)
-    log.info(await client.updateEntities([{
+    log.info(await client.updateEntitiesAndWaitForReceipt([{
       entityKey,
       ttl: 10,
       data: newData,
       stringAnnotations: [["key", newStringAnnotation]],
       numericAnnotations: [["ix", 2]],
     }]))
-    expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
+    expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount, "wrong number of entities owned")
   })
 
   it("should be able to delete entities", async () => {
     await deleteAllEntitiesWithIndex(client, 1)
     entitiesOwnedCount--
-    expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
+    expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount, "wrong number of entities owned")
 
     await deleteAllEntitiesWithIndex(client, 2)
     entitiesOwnedCount--
-    expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
+    expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount, "wrong number of entities owned")
     await deleteAllEntitiesWithIndex(client, 3)
     entitiesOwnedCount -= 2
-    expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
+    expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount, "wrong number of entities owned")
   })
 })

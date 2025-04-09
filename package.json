@@ -26,6 +26,6 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf ./dist",
-    "test": "ts-mocha ./test/**/*.spec.ts"
+    "test": "ts-mocha --recursive --extension .spec.ts ./test"
   }
 }

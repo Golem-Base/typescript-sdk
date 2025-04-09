@@ -1,103 +1,45 @@
-import {
-  createWalletClient,
-  defineChain,
-  http,
-  publicActions,
-  toHex,
-  TransactionReceipt,
-  checksumAddress,
-  type Hex,
-} from 'viem'
-import { privateKeyToAccount, nonceManager, } from 'viem/accounts'
-import RLP from './rlp'
+import * as internalClient from "./internal/client"
 import { ILogObj, Logger } from "tslog";
 
-export { checksumAddress, Hex, toHex, TransactionReceipt }
+import {
+  type Hex,
+  type GolemBaseCreate,
+  type GolemBaseUpdate,
+  EntityMetaData,
+} from "./index"
 
-const storageAddress = '0x0000000000000000000000000000000060138453'
+export interface GolemBaseClient {
+  // TODO: can we give this a better type? Something purely structural?
+  getRawClient(): any
 
-type GolemGetStorageValueInputParams = Hex
-export type GolemGetStorageValueReturnType = string
-type GolemGetStorageValueSchema = {
-  Method: 'golembase_getStorageValue'
-  Parameters: [GolemGetStorageValueInputParams]
-  ReturnType: GolemGetStorageValueReturnType
+  getOwnerAddress(): Promise<Hex>
+  getEntityCount(): Promise<number>
+  getAllEntityKeys(): Promise<Hex[]>
+
+  getEntitiesOfOwner(address: Hex): Promise<Hex[]>
+  getStorageValue(key: Hex): Promise<any>
+
+  queryEntities(query: string): Promise<[{ key: Hex, value: string }]>
+  getEntitiesForStringAnnotationValue(key: string, value: string): Promise<Hex[]>
+  getEntitiesForNumericAnnotationValue(key: string, value: number): Promise<Hex[]>
+  getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]>
+
+  getEntityMetaData(key: Hex): Promise<EntityMetaData>
+
+  createEntities(creates: GolemBaseCreate[]): Promise<
+    {
+      expirationBlock: number,
+      entityKey: Hex,
+    }[]
+  >
+  updateEntities(updates: GolemBaseUpdate[]): Promise<
+    {
+      expirationBlock: number,
+      entityKey: Hex,
+    }[]
+  >
+  deleteEntities(deletes: Hex[]): Promise<{ entityKey: Hex }[]>
 }
-
-type GolemGetEntityMetaDataInputParams = Hex
-export type GolemGetEntityMetaDataReturnType = {
-  expiresAtBlock: number,
-  payload: string,
-  stringAnnotations: {
-    key: string,
-    value: string,
-  },
-  numericAnnotations: {
-    key: string,
-    value: number,
-  },
-  owner: Hex,
-}
-type GolemGetEntityMetaDataSchema = {
-  Method: 'golembase_getEntityMetaData'
-  Parameters: [GolemGetEntityMetaDataInputParams]
-  ReturnType: GolemGetEntityMetaDataReturnType
-}
-
-type GolemGetEntitiesToExpireAtBlockInputParams = number
-export type GolemGetEntitiesToExpireAtBlockReturnType = Hex[]
-type GolemGetEntitiesToExpireAtBlockSchema = {
-  Method: 'golembase_getEntitiesToExpireAtBlock'
-  Parameters: [GolemGetEntitiesToExpireAtBlockInputParams]
-  ReturnType: GolemGetEntitiesToExpireAtBlockReturnType
-}
-
-type GolemGetEntitiesForStringAnnotationValueInputParams = [string, string]
-export type GolemGetEntitiesForStringAnnotationValueReturnType = Hex[]
-type GolemGetEntitiesForStringAnnotationValueSchema = {
-  Method: 'golembase_getEntitiesForStringAnnotationValue'
-  Parameters: GolemGetEntitiesForStringAnnotationValueInputParams
-  ReturnType: GolemGetEntitiesForStringAnnotationValueReturnType
-}
-
-type GolemGetEntitiesForNumericAnnotationValueInputParams = [string, number]
-export type GolemGetEntitiesForNumericAnnotationValueReturnType = Hex[]
-type GolemGetEntitiesForNumericAnnotationValueSchema = {
-  Method: 'golembase_getEntitiesForNumericAnnotationValue'
-  Parameters: GolemGetEntitiesForNumericAnnotationValueInputParams
-  ReturnType: GolemGetEntitiesForNumericAnnotationValueReturnType
-}
-
-export type GolemGetEntityCountReturnType = number
-type GolemGetEntityCountSchema = {
-  Method: 'golembase_getEntityCount'
-  Parameters: []
-  ReturnType: GolemGetEntityCountReturnType
-}
-
-export type GolemGetAllEntityKeysReturnType = Hex[]
-type GolemGetAllEntityKeysSchema = {
-  Method: 'golembase_getAllEntityKeys'
-  Parameters: []
-  ReturnType: GolemGetAllEntityKeysReturnType
-}
-
-type GolemGetEntitiesOfOwnerInputParams = Hex
-export type GolemGetEntitiesOfOwnerReturnType = Hex[]
-type GolemGetEntitiesOfOwnerSchema = {
-  Method: 'golembase_getEntitiesOfOwner'
-  Parameters: [GolemGetEntitiesOfOwnerInputParams]
-  ReturnType: GolemGetEntitiesOfOwnerReturnType
-}
-
-type GolemQueryEntitiesInputParams = string
-export type GolemQueryEntitiesReturnType = { key: string, value: string }
-type GolemQueryEntitiesSchema = {
-  Method: 'golembase_queryEntities'
-  Parameters: [GolemQueryEntitiesInputParams]
-  ReturnType: [GolemQueryEntitiesReturnType]
-}
-
 
 /**
  * Create a client to interact with GolemBase
@@ -110,214 +52,98 @@ type GolemQueryEntitiesSchema = {
 export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> = new Logger<ILogObj>({
   type: "hidden",
   hideLogPositionForProduction: true,
-})) {
+})): GolemBaseClient {
 
-  function createPayload(tx: GolemBaseTransaction): Hex {
-    log.debug("Transaction:", JSON.stringify(tx, null, 2))
-    const payload = [
-      // Create
-      (tx.creates || []).map(el => [el.ttl, el.data, el.stringAnnotations, el.numericAnnotations]),
-      // Update
-      (tx.updates || []).map(el => [el.entityKey, el.ttl, el.data, el.stringAnnotations, el.numericAnnotations]),
-      // Delete
-      tx.deletes || [],
-    ]
-    log.debug("Payload before RLP encoding:", JSON.stringify(payload, null, 2))
-    return toHex(RLP.encode(payload))
-  }
+  const client = internalClient.createClient(key, rpcUrl, log)
 
-  return createWalletClient({
-    account: privateKeyToAccount(toHex(key, { size: 32 }), { nonceManager }),
-    chain: defineChain({
-      id: 1337,
-      name: "golem-base",
-      nativeCurrency: {
-        decimals: 18,
-        name: 'Ether',
-        symbol: 'ETH',
-      },
-      rpcUrls: {
-        default: { http: [rpcUrl] }
-      },
-    }),
-    transport: http(),
-  }).extend(publicActions).extend(client => ({
+  return {
+    getRawClient() {
+      return client
+    },
+
     /**
      * Get the storage value associated with the given entity key
      */
-    async getStorageValue(args: GolemGetStorageValueInputParams): Promise<GolemGetStorageValueReturnType> {
-      return client.request<GolemGetStorageValueSchema>({
-        method: 'golembase_getStorageValue',
-        params: [args]
-      })
+    async getStorageValue(key: Hex): Promise<any> {
+      return client.getStorageValue(key)
     },
+
+    async getOwnerAddress(): Promise<Hex> {
+      return (await client.getAddresses())[0]
+    },
+
     /**
      * Get the full entity information
      */
-    async getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<GolemGetEntityMetaDataReturnType> {
-      return client.request<GolemGetEntityMetaDataSchema>({
-        method: 'golembase_getEntityMetaData',
-        params: [args]
-      })
-    },
-    /**
-     * Get all entity keys for entities that will expire at the given block number
-     */
-    async getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<GolemGetEntitiesToExpireAtBlockReturnType> {
-      const res = await client.request<GolemGetEntitiesToExpireAtBlockSchema>({
-        method: 'golembase_getEntitiesToExpireAtBlock',
-        // TODO: bigint gets serialised in json as a string, which the api doesn't accept.
-        // is there a better workaround?
-        params: [Number(blockNumber)]
-      })
-      return res || []
-    },
-    async getEntitiesForStringAnnotationValue(args: { key: string, value: string }): Promise<GolemGetEntitiesForStringAnnotationValueReturnType> {
-      const res = await client.request<GolemGetEntitiesForStringAnnotationValueSchema>({
-        method: 'golembase_getEntitiesForStringAnnotationValue',
-        params: [args.key, args.value]
-      })
-      return res || []
-    },
-    async getEntitiesForNumericAnnotationValue(args: { key: string, value: number }): Promise<GolemGetEntitiesForNumericAnnotationValueReturnType> {
-      const res = await client.request<GolemGetEntitiesForNumericAnnotationValueSchema>({
-        method: 'golembase_getEntitiesForNumericAnnotationValue',
-        params: [args.key, args.value]
-      })
-      return res || []
-    },
-    async getEntityCount(): Promise<GolemGetEntityCountReturnType> {
-      return client.request<GolemGetEntityCountSchema>({
-        method: 'golembase_getEntityCount',
-        params: []
-      })
-    },
-    async getAllEntityKeys(): Promise<GolemGetAllEntityKeysReturnType> {
-      const res = await client.request<GolemGetAllEntityKeysSchema>({
-        method: 'golembase_getAllEntityKeys',
-        params: []
-      })
-      return res || []
-    },
-    async getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<GolemGetEntitiesOfOwnerReturnType> {
-      const res = await client.request<GolemGetEntitiesOfOwnerSchema>({
-        method: 'golembase_getEntitiesOfOwner',
-        params: [args]
-      })
-      return res || []
-    },
-    async queryEntities(args: GolemQueryEntitiesInputParams): Promise<[GolemQueryEntitiesReturnType]> {
-      const res = await client.request<GolemQueryEntitiesSchema>({
-        method: 'golembase_queryEntities',
-        params: [args]
-      })
-      return res || []
+    async getEntityMetaData(key: Hex): Promise<EntityMetaData> {
+      return client.getEntityMetaData(key)
     },
 
-    async createRawStorageTransaction(payload: Hex): Promise<Hex> {
-      const req = await client.prepareTransactionRequest({
-        to: storageAddress,
-        maxFeePerGas: 150000000000n,
-        maxPriorityFeePerGas: 1000000000n,
-        type: 'eip1559',
-        value: 0n,
-        gas: 1000000n,
-        data: payload,
-        nonceManager,
-      })
-      const tx = await client.signTransaction(req)
-      const hash = await client.sendRawTransaction({ serializedTransaction: tx })
-      log.debug("Got transaction hash:", hash)
-      return hash
+    ///**
+    // * Get all entity keys for entities that will expire at the given block number
+    // */
+    async getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]> {
+      return client.getEntitiesToExpireAtBlock(blockNumber)
     },
 
-    async createEntities(creates: GolemBaseCreate[]): Promise<Hex> {
-      return this.createRawStorageTransaction(createPayload({ creates }))
+    async getEntitiesForStringAnnotationValue(key: string, value: string): Promise<Hex[]> {
+      return client.getEntitiesForStringAnnotationValue({ key, value })
     },
-    async createEntitiesAndWaitForReceipt(creates: GolemBaseCreate[]): Promise<
-      [
-        {
-          expirationBlock: number,
-          entityKey: Hex,
-        }[],
-        TransactionReceipt
-      ]
+
+    async getEntitiesForNumericAnnotationValue(key: string, value: number): Promise<Hex[]> {
+      return client.getEntitiesForNumericAnnotationValue({ key, value })
+    },
+
+    async getEntityCount(): Promise<number> {
+      return client.getEntityCount()
+    },
+
+    async getAllEntityKeys(): Promise<Hex[]> {
+      return client.getAllEntityKeys()
+    },
+
+    async getEntitiesOfOwner(address: Hex): Promise<Hex[]> {
+      return client.getEntitiesOfOwner(address)
+    },
+
+    async queryEntities(query: string): Promise<[{ key: Hex, value: string }]> {
+      return client.queryEntities(query)
+    },
+
+    async createEntities(creates: GolemBaseCreate[]): Promise<
+      {
+        expirationBlock: number,
+        entityKey: Hex,
+      }[]
     > {
-      const receipt = await client.waitForTransactionReceipt({
-        hash: await this.createEntities(creates)
-      })
+      const receipt = await client.createEntitiesAndWaitForReceipt(creates)
       log.debug("Got receipt:", receipt)
-      return [
-        receipt.logs.map(txlog => ({
-          expirationBlock: parseInt(txlog.data),
-          entityKey: txlog.topics[1] as Hex
-        })),
-        receipt
-      ]
+      return receipt.logs.map(txlog => ({
+        expirationBlock: parseInt(txlog.data),
+        entityKey: txlog.topics[1] as Hex
+      }))
     },
-    async updateEntities(updates: GolemBaseUpdate[]): Promise<Hex> {
-      return this.createRawStorageTransaction(createPayload({ updates }))
-    },
-    async updateEntitiesAndWaitForReceipt(updates: GolemBaseUpdate[]): Promise<
-      [
-        {
-          expirationBlock: number,
-          entityKey: Hex,
-        }[],
-        TransactionReceipt
-      ]
-    > {
-      const receipt = await client.waitForTransactionReceipt({
-        hash: await this.updateEntities(updates)
-      })
-      log.debug("Got receipt:", receipt)
-      return [
-        receipt.logs.map(txlog => ({
-          expirationBlock: parseInt(txlog.data),
-          entityKey: txlog.topics[1] as Hex
-        })),
-        receipt
-      ]
-    },
-    async deleteEntities(deletes: Hex[]): Promise<Hex> {
-      log.debug("deleteEntities", deletes)
-      const payload = createPayload({ deletes })
-      return this.createRawStorageTransaction(payload)
-    },
-    async deleteEntitiesAndWaitForReceipt(deletes: Hex[]): Promise<TransactionReceipt> {
-      const receipt = await client.waitForTransactionReceipt({
-        hash: await this.deleteEntities(deletes)
-      })
-      log.debug("Got receipt:", receipt)
-      return receipt
-    },
-  }))
-}
 
-/**
- * Type representing a create transaction in GolemBase
- */
-export type GolemBaseCreate = {
-  data: string,
-  ttl: number,
-  stringAnnotations: [string, string][],
-  numericAnnotations: [string, number][],
-}
-/**
- * Type representing an update transaction in GolemBase
- */
-export type GolemBaseUpdate = {
-  entityKey: Hex,
-  data: string,
-  ttl: number,
-  stringAnnotations: [string, string][],
-  numericAnnotations: [string, number][],
-}
-/**
- * Type representing a delete transaction in GolemBase
- */
-type GolemBaseTransaction = {
-  creates?: GolemBaseCreate[],
-  updates?: GolemBaseUpdate[],
-  deletes?: Hex[],
+    async updateEntities(updates: GolemBaseUpdate[]): Promise<
+      {
+        expirationBlock: number,
+        entityKey: Hex,
+      }[]
+    > {
+      const receipt = await client.updateEntitiesAndWaitForReceipt(updates)
+      log.debug("Got receipt:", receipt)
+      return receipt.logs.map(txlog => ({
+        expirationBlock: parseInt(txlog.data),
+        entityKey: txlog.topics[1] as Hex
+      }))
+    },
+
+    async deleteEntities(deletes: Hex[]): Promise<{ entityKey: Hex }[]> {
+      const receipt = await client.deleteEntitiesAndWaitForReceipt(deletes)
+      log.info("Got receipt:", receipt)
+      return receipt.logs.map(txlog => ({
+        entityKey: txlog.topics[1] as Hex
+      }))
+    },
+  }
 }
