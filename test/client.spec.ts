@@ -8,7 +8,6 @@ import {
   Logger
 } from "tslog"
 import {
-  checksumAddress,
   createClient,
   GolemBaseCreate,
   GolemQueryEntitiesReturnType,
