@@ -6,7 +6,7 @@ import {
   type GolemBaseCreate,
   type GolemBaseUpdate,
   EntityMetaData,
-} from "./index"
+} from ".."
 
 export interface GolemBaseClient {
   // TODO: can we give this a better type? Something purely structural?
@@ -140,7 +140,7 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
 
     async deleteEntities(deletes: Hex[]): Promise<{ entityKey: Hex }[]> {
       const receipt = await client.deleteEntitiesAndWaitForReceipt(deletes)
-      log.info("Got receipt:", receipt)
+      log.debug("Got receipt:", receipt)
       return receipt.logs.map(txlog => ({
         entityKey: txlog.topics[1] as Hex
       }))

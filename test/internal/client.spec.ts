@@ -11,7 +11,7 @@ import {
   internal,
   type GolemBaseCreate,
   type Hex
-} from "../../src/index"
+} from "../.."
 
 const log = new Logger<ILogObj>({
   type: "pretty",
@@ -28,7 +28,7 @@ function generateRandomString(length: number): string {
 }
 
 
-async function numOfEntitiesOwnedBy(client: any, owner: internal.Hex): Promise<number> {
+async function numOfEntitiesOwnedBy(client: any, owner: Hex): Promise<number> {
   const entitiesOwned = await client.getEntitiesOfOwner(owner)
   log.info("Entities owned:", entitiesOwned)
   log.info("Number of entities owned:", entitiesOwned.length)
@@ -50,7 +50,7 @@ async function deleteAllEntitiesWithIndex(client: any, index: number): Promise<i
 const keyBytes = fs.readFileSync('/home/ramses/.config/golembase/private.key');
 const client = internal.createClient(keyBytes, 'http://localhost:8545', log)
 
-async function ownerAddress(): Promise<internal.Hex> {
+async function ownerAddress(): Promise<Hex> {
   return (await client.getAddresses())[0]
 }
 

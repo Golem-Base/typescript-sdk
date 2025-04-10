@@ -17,7 +17,7 @@ import {
   type GolemBaseUpdate,
   type GolemBaseTransaction,
   EntityMetaData,
-} from "../index"
+} from "../.."
 
 export { checksumAddress, toHex, TransactionReceipt }
 
@@ -233,7 +233,6 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
       const receipt = await client.waitForTransactionReceipt({
         hash: await this.createEntities(creates)
       })
-      log.debug("Got receipt:", receipt)
       return receipt
     },
     async updateEntities(updates: GolemBaseUpdate[]): Promise<Hex> {
@@ -243,7 +242,6 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
       const receipt = await client.waitForTransactionReceipt({
         hash: await this.updateEntities(updates)
       })
-      log.debug("Got receipt:", receipt)
       return receipt
     },
     async deleteEntities(deletes: Hex[]): Promise<Hex> {
@@ -255,7 +253,6 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
       const receipt = await client.waitForTransactionReceipt({
         hash: await this.deleteEntities(deletes)
       })
-      log.debug("Got receipt:", receipt)
       return receipt
     },
   }))

@@ -1,5 +1,5 @@
-export * from "./client"
-export * as internal from "./internal/client"
+export * from "./src/client"
+export * as internal from "./src/internal/client"
 
 export type Hex = `0x${string}`
 /**

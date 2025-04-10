@@ -12,7 +12,7 @@ import {
   GolemBaseClient,
   type Hex,
   type GolemBaseCreate,
-} from "../src/index"
+} from ".."
 
 const log = new Logger<ILogObj>({
   type: "pretty",
