@@ -6,7 +6,7 @@
   "types": "dist/index.d.ts",
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0-only",
   "packageManager": "pnpm@10.5.2",
   "scripts": {
     "build": "tsc"
