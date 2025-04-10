@@ -9,14 +9,17 @@ importers:
   .:
     dependencies:
       '@types/node':
-        specifier: ^22.13.16
-        version: 22.13.16
+        specifier: ^22.14.0
+        version: 22.14.0
       tslog:
         specifier: ^4.9.3
         version: 4.9.3
       viem:
-        specifier: ^2.24.3
-        version: 2.24.3(typescript@5.8.2)
+        specifier: ^2.26.2
+        version: 2.26.2(typescript@5.8.2)
+      xdg-portable:
+        specifier: ^10.6.0
+        version: 10.6.0
     devDependencies:
       '@types/chai':
         specifier: ^5.2.1
@@ -32,7 +35,7 @@ importers:
         version: 11.1.0
       ts-mocha:
         specifier: ^11.1.0
-        version: 11.1.0(mocha@11.1.0)(ts-node@10.9.2(@types/node@22.13.16)(typescript@5.8.2))
+        version: 11.1.0(mocha@11.1.0)(ts-node@10.9.2(@types/node@22.14.0)(typescript@5.8.2))
 
 packages:
 
@@ -99,8 +102,8 @@ packages:
   '@types/mocha@10.0.10':
     resolution: {integrity: sha512-xPyYSz1cMPnJQhl0CLMH68j3gprKZaTjG3s5Vi+fDgx+uhG9NOXwbVt52eFS8ECyXhyKcjDLCBEqBExKuiZb7Q==}
 
-  '@types/node@22.13.16':
-    resolution: {integrity: sha512-15tM+qA4Ypml/N7kyRdvfRjBQT2RL461uF1Bldn06K0Nzn1lY3nAPgHlsVrJxdZ9WhZiW0Fmc1lOYMtDsAuB3w==}
+  '@types/node@22.14.0':
+    resolution: {integrity: sha512-Kmpl+z84ILoG+3T/zQFyAJsU6EPTmOCj8/2+83fSN6djd6I4o7uOuGIH6vq3PrjY5BGitSbFuMN18j3iknubbA==}
 
   abitype@1.0.8:
     resolution: {integrity: sha512-ZeiI6h3GnW06uYDLx0etQtX/p8E24UaHHBj57RSjK7YBFe7iuVn07EDpOeP451D06sF27VOz9JJPlIKJmXgkEg==}
@@ -381,6 +384,10 @@ packages:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
 
+  os-paths@7.4.0:
+    resolution: {integrity: sha512-Ux1J4NUqC6tZayBqLN1kUlDAEvLiQlli/53sSddU4IN+h+3xxnv2HmRSMpVSvr1hvJzotfMs3ERvETGK+f4OwA==}
+    engines: {node: '>= 4.0'}
+
   ox@0.6.9:
     resolution: {integrity: sha512-wi5ShvzE4eOcTwQVsIPdFr+8ycyX+5le/96iAJutaZAvCes1J0+RvpEPg5QDPDiaR0XQQAvZVl7AwqQcINuUug==}
     peerDependencies:
@@ -516,14 +523,14 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  undici-types@6.20.0:
-    resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
 
-  viem@2.24.3:
-    resolution: {integrity: sha512-FAoW0hqqpGOlZvfL6GbizDNUd6ZvUyNYYF8HouXbGATrO0RLLh28MOElFNF63hg++uZi2R/EcISs0bvY185z8g==}
+  viem@2.26.2:
+    resolution: {integrity: sha512-+yXSl1n+jV/Kn/zpETiNq0WOcINXti29nxdPIONvvNh+Es0VfeusW8bb2okVfa55pmuc8kOCOpB5wq3ZIUCTSA==}
     peerDependencies:
       typescript: '>=5.0.4'
     peerDependenciesMeta:
@@ -557,6 +564,10 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+
+  xdg-portable@10.6.0:
+    resolution: {integrity: sha512-xrcqhWDvtZ7WLmt8G4f3hHy37iK7D2idtosRgkeiSPZEPmBShp0VfmRBLWAPC6zLF48APJ21yfea+RfQMF4/Aw==}
+    engines: {node: '>= 4.0'}
 
   y18n@5.0.8:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
@@ -646,9 +657,9 @@ snapshots:
 
   '@types/mocha@10.0.10': {}
 
-  '@types/node@22.13.16':
+  '@types/node@22.14.0':
     dependencies:
-      undici-types: 6.20.0
+      undici-types: 6.21.0
 
   abitype@1.0.8(typescript@5.8.2):
     optionalDependencies:
@@ -896,6 +907,10 @@ snapshots:
 
   normalize-path@3.0.0: {}
 
+  os-paths@7.4.0:
+    optionalDependencies:
+      fsevents: 2.3.3
+
   ox@0.6.9(typescript@5.8.2):
     dependencies:
       '@adraffy/ens-normalize': 1.11.0
@@ -991,19 +1006,19 @@ snapshots:
     dependencies:
       is-number: 7.0.0
 
-  ts-mocha@11.1.0(mocha@11.1.0)(ts-node@10.9.2(@types/node@22.13.16)(typescript@5.8.2)):
+  ts-mocha@11.1.0(mocha@11.1.0)(ts-node@10.9.2(@types/node@22.14.0)(typescript@5.8.2)):
     dependencies:
       mocha: 11.1.0
-      ts-node: 10.9.2(@types/node@22.13.16)(typescript@5.8.2)
+      ts-node: 10.9.2(@types/node@22.14.0)(typescript@5.8.2)
 
-  ts-node@10.9.2(@types/node@22.13.16)(typescript@5.8.2):
+  ts-node@10.9.2(@types/node@22.14.0)(typescript@5.8.2):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
-      '@types/node': 22.13.16
+      '@types/node': 22.14.0
       acorn: 8.14.1
       acorn-walk: 8.3.4
       arg: 4.1.3
@@ -1018,11 +1033,11 @@ snapshots:
 
   typescript@5.8.2: {}
 
-  undici-types@6.20.0: {}
+  undici-types@6.21.0: {}
 
   v8-compile-cache-lib@3.0.1: {}
 
-  viem@2.24.3(typescript@5.8.2):
+  viem@2.26.2(typescript@5.8.2):
     dependencies:
       '@noble/curves': 1.8.1
       '@noble/hashes': 1.7.1
@@ -1058,6 +1073,12 @@ snapshots:
       strip-ansi: 7.1.0
 
   ws@8.18.1: {}
+
+  xdg-portable@10.6.0:
+    dependencies:
+      os-paths: 7.4.0
+    optionalDependencies:
+      fsevents: 2.3.3
 
   y18n@5.0.8: {}
 

@@ -12,9 +12,10 @@
   "license": "GPL-3.0-only",
   "packageManager": "pnpm@10.5.2",
   "dependencies": {
-    "@types/node": "^22.13.16",
+    "@types/node": "^22.14.0",
     "tslog": "^4.9.3",
-    "viem": "^2.24.3"
+    "viem": "^2.26.2",
+    "xdg-portable": "^10.6.0"
   },
   "devDependencies": {
     "@types/chai": "^5.2.1",

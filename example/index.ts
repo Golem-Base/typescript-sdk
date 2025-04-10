@@ -3,13 +3,14 @@ import {
   type ILogObj,
   Logger
 } from "tslog"
+import xdg from "xdg-portable"
 import {
   createClient,
   type GolemBaseClient,
   type GolemBaseCreate,
 } from "golem-base-sdk-ts"
 
-const keyBytes = fs.readFileSync('/home/ramses/.config/golembase/private.key')
+const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 
 const log = new Logger<ILogObj>({
   type: "pretty",

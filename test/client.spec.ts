@@ -7,6 +7,7 @@ import {
   type ILogObj,
   Logger
 } from "tslog"
+import xdg from "xdg-portable"
 import {
   createClient,
   GolemBaseClient,
@@ -28,7 +29,7 @@ function generateRandomString(length: number): string {
   return result
 }
 
-const keyBytes = fs.readFileSync('/home/ramses/.config/golembase/private.key')
+const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 
 let entitiesOwnedCount = 0
 let entityKey: Hex = "0x"

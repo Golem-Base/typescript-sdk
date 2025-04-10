@@ -7,6 +7,7 @@ import {
   ILogObj,
   Logger
 } from "tslog"
+import xdg from "xdg-portable"
 import {
   internal,
   type GolemBaseCreate,
@@ -27,7 +28,6 @@ function generateRandomString(length: number): string {
   return result;
 }
 
-
 async function numOfEntitiesOwnedBy(client: any, owner: Hex): Promise<number> {
   const entitiesOwned = await client.getEntitiesOfOwner(owner)
   log.info("Entities owned:", entitiesOwned)
@@ -47,7 +47,7 @@ async function deleteAllEntitiesWithIndex(client: any, index: number): Promise<i
   )
 }
 
-const keyBytes = fs.readFileSync('/home/ramses/.config/golembase/private.key');
+const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 const client = internal.createClient(keyBytes, 'http://localhost:8545', log)
 
 async function ownerAddress(): Promise<Hex> {
