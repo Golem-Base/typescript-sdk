@@ -1,3 +1,6 @@
+// Taken from https://github.com/ethereumjs/rlp/tree/master
+// This file is licensed under the MPL 2.0 license by the original author.
+
 export type Input = string | number | bigint | Uint8Array | List | null | undefined
 
 // Use interface extension instead of type alias to
