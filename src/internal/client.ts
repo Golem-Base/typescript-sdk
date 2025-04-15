@@ -24,6 +24,7 @@ import {
   type GolemBaseUpdate,
   type GolemBaseTransaction,
   EntityMetaData,
+  GolemBaseExtend,
 } from "../.."
 
 export { checksumAddress, toHex, TransactionReceipt }
@@ -122,6 +123,8 @@ type GolemBaseActions = {
   updateEntitiesAndWaitForReceipt(updates: GolemBaseUpdate[]): Promise<TransactionReceipt>
   deleteEntities(deletes: Hex[]): Promise<Hex>
   deleteEntitiesAndWaitForReceipt(deletes: Hex[]): Promise<TransactionReceipt>
+  extendEntities(extensions: GolemBaseExtend[]): Promise<Hex>
+  extendEntitiesAndWaitForReceipt(extensions: GolemBaseExtend[]): Promise<TransactionReceipt>
 }
 
 type AllActions<
@@ -167,6 +170,7 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
       (tx.updates || []).map(el => [el.entityKey, el.ttl, el.data, el.stringAnnotations, el.numericAnnotations]),
       // Delete
       tx.deletes || [],
+      (tx.extensions || []).map(el => [el.entityKey, el.numberOfBlocks]),
     ]
     log.debug("Payload before RLP encoding:", JSON.stringify(payload, null, 2))
     return toHex(RLP.encode(payload))
@@ -303,6 +307,17 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
     async deleteEntitiesAndWaitForReceipt(deletes: Hex[]): Promise<TransactionReceipt> {
       const receipt = await client.waitForTransactionReceipt({
         hash: await this.deleteEntities(deletes)
+      })
+      return receipt
+    },
+    async extendEntities(extensions: GolemBaseExtend[]): Promise<Hex> {
+      log.debug("extendEntities", extensions)
+      const payload = createPayload({ extensions })
+      return this.createRawStorageTransaction(payload)
+    },
+    async extendEntitiesAndWaitForReceipt(extensions: GolemBaseExtend[]): Promise<TransactionReceipt> {
+      const receipt = await client.waitForTransactionReceipt({
+        hash: await this.extendEntities(extensions)
       })
       return receipt
     },

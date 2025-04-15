@@ -5,6 +5,7 @@ import {
   type Hex,
   type GolemBaseCreate,
   type GolemBaseUpdate,
+  type GolemBaseExtend,
   EntityMetaData,
 } from ".."
 
@@ -38,6 +39,11 @@ export interface GolemBaseClient {
     }[]
   >
   deleteEntities(deletes: Hex[]): Promise<{ entityKey: Hex }[]>
+  extendEntities(extensions: GolemBaseExtend[]): Promise<{
+    oldExpirationBlock: number,
+    newExpirationBlock: number,
+    entityKey: Hex,
+  }[]>
 }
 
 /**
@@ -141,6 +147,27 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
       const receipt = await client.deleteEntitiesAndWaitForReceipt(deletes)
       log.debug("Got receipt:", receipt)
       return receipt.logs.map(txlog => ({
+        entityKey: txlog.topics[1] as Hex
+      }))
+    },
+
+    async extendEntities(extensions: GolemBaseExtend[]): Promise<{
+      oldExpirationBlock: number,
+      newExpirationBlock: number,
+      entityKey: Hex
+    }[]> {
+      const receipt = await client.extendEntitiesAndWaitForReceipt(extensions)
+      log.debug("Got receipt:", receipt)
+      log.debug(`Got: 0x${receipt.logs[0].data.substring(2, 66)}`)
+      return receipt.logs.map(txlog => ({
+        // Take the first 64 bytes, so 64 hex characters
+        // We skip the initial 0x
+        // Example:
+        // 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 012f
+        //    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0143
+        oldExpirationBlock: parseInt(`0x${txlog.data.substring(2, 2 + 64)}`),
+        // Take the next 32 bytes
+        newExpirationBlock: parseInt(`0x${txlog.data.substring(66, 66 + 64)}`),
         entityKey: txlog.topics[1] as Hex
       }))
     },

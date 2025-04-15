@@ -22,12 +22,20 @@ export type GolemBaseUpdate = {
   numericAnnotations: [string, number][],
 }
 /**
+ * Type representing an extend transaction in GolemBase
+ */
+export type GolemBaseExtend = {
+  entityKey: Hex,
+  numberOfBlocks: number,
+}
+/**
  * Type representing a delete transaction in GolemBase
  */
 export type GolemBaseTransaction = {
   creates?: GolemBaseCreate[],
   updates?: GolemBaseUpdate[],
   deletes?: Hex[],
+  extensions?: GolemBaseExtend[],
 }
 
 export type EntityMetaData = {

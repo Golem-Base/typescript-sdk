@@ -190,6 +190,16 @@ describe("the internal golem-base client", () => {
     expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount, "wrong number of entities owned")
   })
 
+  it("should be able to extend entities", async () => {
+    const numberOfBlocks = 20
+    const result = await client.extendEntitiesAndWaitForReceipt([{
+      entityKey,
+      numberOfBlocks,
+    }])
+    expect(result).to.exist
+    expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount, "wrong number of entities owned")
+  })
+
   it("should be able to delete entities", async () => {
     await deleteAllEntitiesWithIndex(client, 1)
     entitiesOwnedCount--
