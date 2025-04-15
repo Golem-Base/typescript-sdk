@@ -1,12 +1,15 @@
 import * as internal from "./internal/client"
-import { ILogObj, Logger } from "tslog";
+import {
+  type ILogObj,
+  Logger,
+} from "tslog";
 
 import {
   type Hex,
   type GolemBaseCreate,
   type GolemBaseUpdate,
   type GolemBaseExtend,
-  EntityMetaData,
+  type EntityMetaData,
 } from ".."
 
 export interface GolemBaseClient {

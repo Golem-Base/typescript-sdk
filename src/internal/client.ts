@@ -14,17 +14,23 @@ import {
   type Transport,
   type WalletActions,
 } from 'viem'
-import { privateKeyToAccount, nonceManager, } from 'viem/accounts'
+import {
+  privateKeyToAccount,
+  nonceManager,
+} from 'viem/accounts'
 import RLP from '../rlp'
-import { ILogObj, Logger } from "tslog";
+import {
+  type ILogObj,
+  Logger,
+} from "tslog";
 
 import {
   type Hex,
   type GolemBaseCreate,
   type GolemBaseUpdate,
   type GolemBaseTransaction,
-  EntityMetaData,
-  GolemBaseExtend,
+  type EntityMetaData,
+  type GolemBaseExtend,
 } from "../.."
 
 export { checksumAddress, toHex, TransactionReceipt }

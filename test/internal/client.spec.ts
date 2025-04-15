@@ -4,7 +4,7 @@ import {
 } from "chai"
 import { describe, it } from "node:test"
 import {
-  ILogObj,
+  type ILogObj,
   Logger
 } from "tslog"
 import xdg from "xdg-portable"

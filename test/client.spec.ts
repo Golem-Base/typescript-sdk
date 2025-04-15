@@ -8,9 +8,10 @@ import {
   Logger
 } from "tslog"
 import xdg from "xdg-portable"
+//import { spawn } from "child_process"
 import {
   createClient,
-  GolemBaseClient,
+  type GolemBaseClient,
   type Hex,
   type GolemBaseCreate,
 } from ".."
