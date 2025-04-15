@@ -4,8 +4,15 @@ import {
   http,
   publicActions,
   toHex,
-  TransactionReceipt,
   checksumAddress,
+  type TransactionReceipt,
+  type Account,
+  type Chain,
+  type Client,
+  type PublicActions,
+  type RpcSchema,
+  type Transport,
+  type WalletActions,
 } from 'viem'
 import { privateKeyToAccount, nonceManager, } from 'viem/accounts'
 import RLP from '../rlp'
@@ -93,6 +100,50 @@ type GolemQueryEntitiesSchema = {
   ReturnType: [GolemQueryEntitiesReturnType]
 }
 
+type GolemBaseActions = {
+  getStorageValue(args: GolemGetStorageValueInputParams): Promise<GolemGetStorageValueReturnType>
+  getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<GolemGetEntityMetaDataReturnType>
+  /**
+   * Get all entity keys for entities that will expire at the given block number
+   */
+  getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<GolemGetEntitiesToExpireAtBlockReturnType>
+  getEntitiesForStringAnnotationValue(args: { key: string, value: string }): Promise<GolemGetEntitiesForStringAnnotationValueReturnType>
+  getEntitiesForNumericAnnotationValue(args: { key: string, value: number }): Promise<GolemGetEntitiesForNumericAnnotationValueReturnType>
+  getEntityCount(): Promise<GolemGetEntityCountReturnType>
+  getAllEntityKeys(): Promise<GolemGetAllEntityKeysReturnType>
+  getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<GolemGetEntitiesOfOwnerReturnType>
+  queryEntities(args: GolemQueryEntitiesInputParams): Promise<[GolemQueryEntitiesReturnType]>
+
+  createRawStorageTransaction(payload: Hex): Promise<Hex>
+
+  createEntities(creates: GolemBaseCreate[]): Promise<Hex>
+  createEntitiesAndWaitForReceipt(creates: GolemBaseCreate[]): Promise<TransactionReceipt>
+  updateEntities(updates: GolemBaseUpdate[]): Promise<Hex>
+  updateEntitiesAndWaitForReceipt(updates: GolemBaseUpdate[]): Promise<TransactionReceipt>
+  deleteEntities(deletes: Hex[]): Promise<Hex>
+  deleteEntitiesAndWaitForReceipt(deletes: Hex[]): Promise<TransactionReceipt>
+}
+
+type AllActions<
+  transport extends Transport = Transport,
+  chain extends Chain | undefined = Chain | undefined,
+  account extends Account | undefined = Account | undefined,
+> =
+  PublicActions<transport, chain, account> &
+  WalletActions<chain, account> &
+  GolemBaseActions
+
+export type GolemBaseClient<
+  transport extends Transport = Transport,
+  chain extends Chain | undefined = Chain | undefined,
+  account extends Account | undefined = Account | undefined,
+> = Client<
+  transport,
+  chain,
+  account,
+  RpcSchema,
+  AllActions
+>
 
 /**
  * Create a client to interact with GolemBase
@@ -105,7 +156,7 @@ type GolemQueryEntitiesSchema = {
 export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> = new Logger<ILogObj>({
   type: "hidden",
   hideLogPositionForProduction: true,
-})) {
+})): GolemBaseClient {
 
   function createPayload(tx: GolemBaseTransaction): Hex {
     log.debug("Transaction:", JSON.stringify(tx, null, 2))

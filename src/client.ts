@@ -1,4 +1,4 @@
-import * as internalClient from "./internal/client"
+import * as internal from "./internal/client"
 import { ILogObj, Logger } from "tslog";
 
 import {
@@ -9,15 +9,14 @@ import {
 } from ".."
 
 export interface GolemBaseClient {
-  // TODO: can we give this a better type? Something purely structural?
-  getRawClient(): any
+  getRawClient(): internal.GolemBaseClient
 
   getOwnerAddress(): Promise<Hex>
   getEntityCount(): Promise<number>
   getAllEntityKeys(): Promise<Hex[]>
 
   getEntitiesOfOwner(address: Hex): Promise<Hex[]>
-  getStorageValue(key: Hex): Promise<any>
+  getStorageValue(key: Hex): Promise<string>
 
   queryEntities(query: string): Promise<[{ key: Hex, value: string }]>
   getEntitiesForStringAnnotationValue(key: string, value: string): Promise<Hex[]>
@@ -54,7 +53,7 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
   hideLogPositionForProduction: true,
 })): GolemBaseClient {
 
-  const client = internalClient.createClient(key, rpcUrl, log)
+  const client = internal.createClient(key, rpcUrl, log)
 
   return {
     getRawClient() {
@@ -64,7 +63,7 @@ export function createClient(key: Buffer, rpcUrl: string, log: Logger<ILogObj> =
     /**
      * Get the storage value associated with the given entity key
      */
-    async getStorageValue(key: Hex): Promise<any> {
+    async getStorageValue(key: Hex): Promise<string> {
       return client.getStorageValue(key)
     },
 

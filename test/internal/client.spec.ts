@@ -13,36 +13,30 @@ import {
   type GolemBaseCreate,
   type Hex
 } from "../.."
+import {
+  generateRandomString,
+} from "../utils.ts"
 
 const log = new Logger<ILogObj>({
   type: "pretty",
   minLevel: 3,
 })
 
-function generateRandomString(length: number): string {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-}
-
-async function numOfEntitiesOwnedBy(client: any, owner: Hex): Promise<number> {
+async function numOfEntitiesOwnedBy(client: internal.GolemBaseClient, owner: Hex): Promise<number> {
   const entitiesOwned = await client.getEntitiesOfOwner(owner)
-  log.info("Entities owned:", entitiesOwned)
-  log.info("Number of entities owned:", entitiesOwned.length)
+  log.debug("Entities owned:", entitiesOwned)
+  log.debug("Number of entities owned:", entitiesOwned.length)
   return entitiesOwned.length
 }
 
-async function deleteAllEntitiesWithIndex(client: any, index: number): Promise<internal.TransactionReceipt[]> {
+async function deleteAllEntitiesWithIndex(client: internal.GolemBaseClient, index: number): Promise<internal.TransactionReceipt[]> {
   log.debug("Deleting entities with index", index)
   const queryResult = await client.queryEntities(`ix = ${index}`)
   log.debug("deleteEntitiesWithIndex, queryResult", queryResult)
   return Promise.all(
     queryResult.map(async (res: internal.GolemQueryEntitiesReturnType) => {
       log.debug("Deleting entity with key", res.key)
-      await client.deleteEntitiesAndWaitForReceipt([res.key])
+      return await client.deleteEntitiesAndWaitForReceipt([res.key])
     })
   )
 }
@@ -159,6 +153,7 @@ describe("the internal golem-base client", () => {
 
   it("should be able to retrieve the stored value", async () => {
     const value = await client.getStorageValue(entityKey)
+    log.debug(value)
     expect(value).to.eql(Buffer.from(data, 'binary').toString('base64'))
   })
 
@@ -183,13 +178,15 @@ describe("the internal golem-base client", () => {
   it("should be able to update entities", async () => {
     const newData = generateRandomString(32)
     const newStringAnnotation = generateRandomString(32)
-    log.info(await client.updateEntitiesAndWaitForReceipt([{
+    const result = await client.updateEntitiesAndWaitForReceipt([{
       entityKey,
       ttl: 10,
       data: newData,
       stringAnnotations: [["key", newStringAnnotation]],
       numericAnnotations: [["ix", 2]],
-    }]))
+    }])
+    expect(result).to.exist
+    log.debug(result)
     expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount, "wrong number of entities owned")
   })
 

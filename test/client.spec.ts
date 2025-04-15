@@ -14,20 +14,14 @@ import {
   type Hex,
   type GolemBaseCreate,
 } from ".."
+import {
+  generateRandomString,
+} from "./utils.ts"
 
 const log = new Logger<ILogObj>({
   type: "pretty",
   minLevel: 3,
 })
-
-function generateRandomString(length: number): string {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  let result = ''
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length))
-  }
-  return result
-}
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 
@@ -43,8 +37,8 @@ describe("the golem-base client", () => {
 
   async function numOfEntitiesOwned(client: GolemBaseClient): Promise<number> {
     const entitiesOwned = await client.getEntitiesOfOwner(await client.getOwnerAddress())
-    log.info("Entities owned:", entitiesOwned)
-    log.info("Number of entities owned:", entitiesOwned.length)
+    log.debug("Entities owned:", entitiesOwned)
+    log.debug("Number of entities owned:", entitiesOwned.length)
     return entitiesOwned.length
   }
 
@@ -179,13 +173,15 @@ describe("the golem-base client", () => {
   it("should be able to update entities", async () => {
     const newData = generateRandomString(32)
     const newStringAnnotation = generateRandomString(32)
-    log.info(await client.updateEntities([{
+    const result = (await client.updateEntities([{
       entityKey,
       ttl: 10,
       data: newData,
       stringAnnotations: [["key", newStringAnnotation]],
       numericAnnotations: [["ix", 2]],
-    }]))
+    }]))[0]
+    expect(result).to.exist
+    log.debug(result)
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
   })
 
