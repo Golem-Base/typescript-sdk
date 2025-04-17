@@ -14,6 +14,7 @@ import {
   type GolemBaseClient,
   type Hex,
   type GolemBaseCreate,
+  Annotation,
 } from ".."
 import {
   generateRandomString,
@@ -29,9 +30,10 @@ const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 let entitiesOwnedCount = 0
 let entityKey: Hex = "0x"
 let expiryBlock: number
+let unsubscribe: () => void = () => { }
 
 describe("the golem-base client", () => {
-  const client = createClient(keyBytes, 'http://localhost:8545', log)
+  const client = createClient(keyBytes, 'http://localhost:8545', 'ws://localhost:8546', log)
 
   const data = generateRandomString(32)
   const stringAnnotation = generateRandomString(32)
@@ -49,8 +51,8 @@ describe("the golem-base client", () => {
     log.debug("deleteEntitiesWithIndex, queryResult", queryResult)
     return Promise.all(
       queryResult.map(async (res) => {
-        log.debug("Deleting entity with key", res.key)
-        await client.deleteEntities([res.key])
+        log.debug("Deleting entity with key", res.entityKey)
+        await client.deleteEntities([res.entityKey])
       })
     )
   }
@@ -63,8 +65,8 @@ describe("the golem-base client", () => {
     const receipt = await client.createEntities([{
       data: generateRandomString(32),
       ttl: 25,
-      stringAnnotations: [["key", generateRandomString(32)]],
-      numericAnnotations: [["ix", 1]]
+      stringAnnotations: [new Annotation("key", generateRandomString(32))],
+      numericAnnotations: [new Annotation("ix", 1)]
     }])
     expect(receipt).to.exist
 
@@ -77,20 +79,20 @@ describe("the golem-base client", () => {
       {
         data,
         ttl: 25,
-        stringAnnotations: [["key", stringAnnotation]],
-        numericAnnotations: [["ix", 2]]
+        stringAnnotations: [new Annotation("key", stringAnnotation)],
+        numericAnnotations: [new Annotation("ix", 2)]
       },
       {
         data,
         ttl: 5,
-        stringAnnotations: [["key", generateRandomString(32)]],
-        numericAnnotations: [["ix", 3]]
+        stringAnnotations: [new Annotation("key", generateRandomString(32))],
+        numericAnnotations: [new Annotation("ix", 3)]
       },
       {
         data,
         ttl: 5,
-        stringAnnotations: [["key", generateRandomString(32)]],
-        numericAnnotations: [["ix", 3]]
+        stringAnnotations: [new Annotation("key", generateRandomString(32))],
+        numericAnnotations: [new Annotation("ix", 3)]
       }
     ]
     const receipts = await client.createEntities(creates)
@@ -127,24 +129,24 @@ describe("the golem-base client", () => {
   it("should be able to query entities based on string annotations", async () => {
     const entities = await client.queryEntities(`key = "${stringAnnotation}"`)
     expect(entities).to.eql([{
-      key: entityKey,
-      value: Buffer.from(data, 'binary').toString('base64'),
+      entityKey: entityKey,
+      storageValue: Buffer.from(data, 'binary').toString('base64'),
     }])
   })
 
   it("should be able to query entities based on numeric annotations", async () => {
     const entities = await client.queryEntities(`ix = 2`)
     expect(entities).to.eql([{
-      key: entityKey,
-      value: Buffer.from(data, 'binary').toString('base64'),
+      entityKey: entityKey,
+      storageValue: Buffer.from(data, 'binary').toString('base64'),
     }])
   })
 
   it("should be able to query entities based on multiple annotations", async () => {
     const entities = await client.queryEntities(`key = "${stringAnnotation}" && ix = 2`)
     expect(entities).to.eql([{
-      key: entityKey,
-      value: Buffer.from(data, 'binary').toString('base64'),
+      entityKey: entityKey,
+      storageValue: Buffer.from(data, 'binary').toString('base64'),
     }])
   })
 
@@ -178,8 +180,8 @@ describe("the golem-base client", () => {
       entityKey,
       ttl: 10,
       data: newData,
-      stringAnnotations: [["key", newStringAnnotation]],
-      numericAnnotations: [["ix", 2]],
+      stringAnnotations: [new Annotation("key", newStringAnnotation)],
+      numericAnnotations: [new Annotation("ix", 2)],
     }]))[0]
     expect(result).to.exist
     log.debug(result)

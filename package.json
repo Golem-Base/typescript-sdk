@@ -2,7 +2,6 @@
   "name": "golem-base-sdk",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "./dist"
@@ -14,7 +13,7 @@
   "dependencies": {
     "@types/node": "^22.14.1",
     "tslog": "^4.9.3",
-    "viem": "^2.27.0",
+    "viem": "^2.27.2",
     "xdg-portable": "^10.6.0"
   },
   "devDependencies": {
@@ -22,7 +21,8 @@
     "@types/mocha": "^10.0.10",
     "chai": "^5.2.0",
     "mocha": "^11.1.0",
-    "ts-mocha": "^11.1.0"
+    "ts-mocha": "^11.1.0",
+    "typedoc": "^0.28.2"
   },
   "scripts": {
     "build": "tsc",

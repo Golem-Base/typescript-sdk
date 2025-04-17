@@ -8,6 +8,7 @@ import {
   createClient,
   type GolemBaseClient,
   type GolemBaseCreate,
+  Annotation,
 } from "golem-base-sdk-ts"
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
@@ -18,11 +19,35 @@ const log = new Logger<ILogObj>({
 })
 
 async function main() {
-  const client: GolemBaseClient = createClient(keyBytes, 'http://localhost:8545', log)
+  const client: GolemBaseClient = createClient(
+    keyBytes,
+    'http://localhost:8545',
+    'ws://localhost:8546',
+    log
+  )
 
   async function numOfEntitiesOwned(): Promise<number> {
     return (await client.getEntitiesOfOwner(await client.getOwnerAddress())).length
   }
+
+  const block = await client.getRawClient().httpClient.getBlockNumber()
+  const unsubscribe = client.watchLogs({
+    fromBlock: block,
+    onCreated: (args) => {
+      log.info("Got creation event:", args)
+    },
+    onUpdated: (args) => {
+      log.info("Got update event:", args)
+    },
+    onExtended: (args) => {
+      log.info("Got extension event:", args)
+    },
+    onDeleted: (args) => {
+      log.info("Got deletion event:", args)
+    },
+    pollingInterval: 50,
+    transport: "http",
+  })
 
   log.info("Number of entities owned:", await numOfEntitiesOwned())
 
@@ -36,20 +61,20 @@ async function main() {
     {
       data: "foo",
       ttl: 25,
-      stringAnnotations: [["key", "foo"]],
-      numericAnnotations: [["ix", 1]]
+      stringAnnotations: [new Annotation("key", "foo")],
+      numericAnnotations: [new Annotation("ix", 1)]
     },
     {
       data: "bar",
       ttl: 2,
-      stringAnnotations: [["key", "bar"]],
-      numericAnnotations: [["ix", 2]]
+      stringAnnotations: [new Annotation("key", "bar")],
+      numericAnnotations: [new Annotation("ix", 2)]
     },
     {
       data: "qux",
       ttl: 50,
-      stringAnnotations: [["key", "qux"]],
-      numericAnnotations: [["ix", 2]]
+      stringAnnotations: [new Annotation("key", "qux")],
+      numericAnnotations: [new Annotation("ix", 2)]
     }
   ]
   const receipts = await client.createEntities(creates)
@@ -83,8 +108,8 @@ async function main() {
     entityKey: receipts[2].entityKey,
     ttl: 40,
     data: "foobar",
-    stringAnnotations: [["key", "qux"], ["foo", "bar"]],
-    numericAnnotations: [["ix", 2]]
+    stringAnnotations: [new Annotation("key", "qux"), new Annotation("foo", "bar")],
+    numericAnnotations: [new Annotation("ix", 2)]
   }])
 
   log.info(
@@ -104,10 +129,12 @@ async function main() {
 
   await client.deleteEntities(
     (await client.queryEntities("ix = 1 || ix = 2 || ix = 3"))
-      .map(result => result.key)
+      .map(result => result.entityKey)
   )
 
   log.info("Number of entities owned:", await numOfEntitiesOwned())
+
+  unsubscribe()
 }
 
 main()
