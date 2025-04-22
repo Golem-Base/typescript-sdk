@@ -18,7 +18,6 @@ import {
   type WebSocketTransport,
   createPublicClient,
   parseGwei,
-  formatEther,
   formatGwei,
 } from 'viem'
 import {
