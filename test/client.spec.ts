@@ -195,9 +195,9 @@ describe("the golem-base client", () => {
       numberOfBlocks,
     }]))[0]
     expect(result).to.exist
-    log.debug(`Extend result: ${JSON.stringify(result)}`)
+    log.debug(`Extend result: ${JSON.stringify(result, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`)
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
-    expect(result.newExpirationBlock - result.oldExpirationBlock == numberOfBlocks)
+    expect(result.newExpirationBlock - result.oldExpirationBlock == BigInt(numberOfBlocks))
   })
 
   it("should be able to delete entities", async () => {

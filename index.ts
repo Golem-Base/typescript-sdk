@@ -58,7 +58,7 @@ export type GolemBaseTransaction = {
  * Type representing the metadata of a entity stored in GolemBase
  */
 export type EntityMetaData = {
-  expiresAtBlock: number,
+  expiresAtBlock: bigint,
   payload: string,
   stringAnnotations: StringAnnotation[],
   numericAnnotations: NumericAnnotation[],
