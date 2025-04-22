@@ -8,6 +8,7 @@
     "url": "git+https://github.com/Golem-Base/typescript-sdk"
   },
   "types": "dist/index.d.ts",
+  "browser": "dist/golem-base-sdk.min.js",
   "files": [
     "./dist"
   ],
@@ -22,16 +23,22 @@
     "xdg-portable": "^10.6.0"
   },
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.1",
     "@types/chai": "^5.2.1",
     "@types/mocha": "^10.0.10",
     "chai": "^5.2.0",
     "mocha": "^11.1.0",
+    "rollup": "^4.40.0",
+    "rollup-plugin-esbuild-minify": "^1.2.0",
+    "rollup-plugin-polyfill-node": "^0.13.0",
     "ts-mocha": "^11.1.0",
     "typedoc": "^0.28.3"
   },
   "scripts": {
-    "build": "tsc",
     "clean": "rm -rf ./dist",
+    "build": "tsc",
+    "rollup": "rm -rf ./dist && tsc && rollup -c",
     "test": "ts-mocha --recursive --extension .spec.ts ./test",
     "typedoc": "./node_modules/typedoc/bin/typedoc ./index.ts"
   }

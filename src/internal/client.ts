@@ -19,6 +19,8 @@ import {
   createPublicClient,
   parseGwei,
   formatGwei,
+  custom,
+  CustomTransport,
 } from 'viem'
 import {
   privateKeyToAccount,
@@ -39,7 +41,9 @@ import {
   type GolemBaseExtend,
   StringAnnotation,
   NumericAnnotation,
+  AccountData,
 } from "../.."
+import { SmartAccount } from 'viem/_types/account-abstraction/accounts/types';
 
 export { checksumAddress, toHex, TransactionReceipt }
 
@@ -128,7 +132,9 @@ export type GolemBaseActions = {
   getAllEntityKeys(): Promise<GolemGetAllEntityKeysReturnType>
   getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<GolemGetEntitiesOfOwnerReturnType>
   queryEntities(args: GolemQueryEntitiesInputParams): Promise<GolemQueryEntitiesReturnType[]>
+}
 
+export type GolemBaseWalletActions = {
   createRawStorageTransaction(payload: Hex): Promise<Hex>
 
   createEntities(creates: GolemBaseCreate[]): Promise<Hex>
@@ -154,12 +160,22 @@ export type GolemBaseClient<
   chain extends Chain | undefined = Chain | undefined,
   account extends Account | undefined = Account | undefined,
 > = {
+  walletClient: Client<
+    HttpTransport | CustomTransport,
+    chain,
+    account,
+    RpcSchema,
+    WalletActions<chain, account> & PublicActions<HttpTransport | CustomTransport,
+      chain,
+      account> & GolemBaseWalletActions
+  >,
   httpClient: Client<
     HttpTransport,
     chain,
     account,
     RpcSchema,
-    AllActions>,
+    PublicActions<HttpTransport, chain, account> & GolemBaseActions
+  >,
   wsClient: Client<
     WebSocketTransport,
     chain,
@@ -168,7 +184,6 @@ export type GolemBaseClient<
     PublicActions<WebSocketTransport, chain, account>
   >
 }
-
 
 /**
  * Create a client to interact with GolemBase
@@ -179,15 +194,17 @@ export type GolemBaseClient<
  *
  * @returns A client object
  */
-export function createClient(
-  key: Buffer,
+export async function createClient(
+  accountData: AccountData,
   rpcUrl: string,
   wsUrl: string,
-  log: Logger<ILogObj> = new Logger<ILogObj>({
+  logger: Logger<ILogObj> = new Logger<ILogObj>({
     type: "hidden",
     hideLogPositionForProduction: true,
   })
-): GolemBaseClient {
+): Promise<GolemBaseClient> {
+
+  const log = logger.getSubLogger({ name: "internal" });
 
   function createPayload(tx: GolemBaseTransaction): Hex {
     function formatAnnotation<T>(annotation: { key: string, value: T, }): [string, T] {
@@ -237,18 +254,125 @@ export function createClient(
       }
     },
   })
-  const account = privateKeyToAccount(toHex(key, { size: 32 }), { nonceManager })
+
+  log.debug("Creating internal client", {
+    rpcUrl,
+    wsUrl,
+    chain
+  })
+
+  async function mkWalletClient(): Promise<Client<
+    HttpTransport | CustomTransport,
+    Chain,
+    Account,
+    RpcSchema,
+    WalletActions
+  >> {
+    if (accountData.tag === "privatekey") {
+      return createWalletClient({
+        account: privateKeyToAccount(toHex(accountData.data, { size: 32 }), { nonceManager }),
+        chain,
+        transport: http(),
+      })
+    } else {
+      const [account]: [SmartAccount] = await accountData.data.request({ method: 'eth_requestAccounts' })
+      return createWalletClient({
+        account,
+        chain,
+        transport: custom(accountData.data),
+      })
+    }
+  }
+  const walletClient = await mkWalletClient()
 
   return {
+    walletClient: walletClient.extend(publicActions).extend(client => ({
+      async createRawStorageTransaction(
+        data: Hex,
+        maxFeePerGas: bigint = parseGwei('150'),
+        maxPriorityFeePerGas: bigint = parseGwei('1'),
+      ): Promise<Hex> {
+        const value = 0n
+        const type = 'eip1559'
+
+        const gasEstimate = await client.estimateGas({
+          to: storageAddress,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+          type,
+          value,
+          data,
+        })
+        log.debug("Received GAS estimate: ", formatGwei(gasEstimate))
+
+        // TODO: why do we need to specify the account and the chain again here?
+        // We don't need this for other methods...
+        const hash = await client.sendTransaction({
+          account: client.account,
+          chain: client.chain,
+          to: storageAddress,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+          type,
+          value,
+          gas: gasEstimate,
+          data,
+          nonceManager,
+        })
+
+        log.debug("Got transaction hash:", hash)
+        return hash
+      },
+
+      async createEntities(creates: GolemBaseCreate[]): Promise<Hex> {
+        return this.createRawStorageTransaction(createPayload({ creates }))
+      },
+      async createEntitiesAndWaitForReceipt(creates: GolemBaseCreate[]): Promise<TransactionReceipt> {
+        const receipt = await client.waitForTransactionReceipt({
+          hash: await this.createEntities(creates)
+        })
+        return receipt
+      },
+      async updateEntities(updates: GolemBaseUpdate[]): Promise<Hex> {
+        return this.createRawStorageTransaction(createPayload({ updates }))
+      },
+      async updateEntitiesAndWaitForReceipt(updates: GolemBaseUpdate[]): Promise<TransactionReceipt> {
+        const receipt = await client.waitForTransactionReceipt({
+          hash: await this.updateEntities(updates)
+        })
+        return receipt
+      },
+      async deleteEntities(deletes: Hex[]): Promise<Hex> {
+        log.debug("deleteEntities", deletes)
+        const payload = createPayload({ deletes })
+        return this.createRawStorageTransaction(payload)
+      },
+      async deleteEntitiesAndWaitForReceipt(deletes: Hex[]): Promise<TransactionReceipt> {
+        const receipt = await client.waitForTransactionReceipt({
+          hash: await this.deleteEntities(deletes)
+        })
+        return receipt
+      },
+      async extendEntities(extensions: GolemBaseExtend[]): Promise<Hex> {
+        log.debug("extendEntities", extensions)
+        const payload = createPayload({ extensions })
+        return this.createRawStorageTransaction(payload)
+      },
+      async extendEntitiesAndWaitForReceipt(extensions: GolemBaseExtend[]): Promise<TransactionReceipt> {
+        const receipt = await client.waitForTransactionReceipt({
+          hash: await this.extendEntities(extensions)
+        })
+        return receipt
+      },
+    })),
     wsClient: createPublicClient({
       chain,
       transport: webSocket(wsUrl),
     }),
-    httpClient: createWalletClient({
-      account,
+    httpClient: createPublicClient({
       chain,
       transport: http(),
-    }).extend(publicActions).extend(client => ({
+    }).extend(client => ({
       /**
        * Get the storage value associated with the given entity key
        */
@@ -319,82 +443,6 @@ export function createClient(
           params: [args]
         })
         return res || []
-      },
-
-      async createRawStorageTransaction(
-        data: Hex,
-        maxFeePerGas: bigint = parseGwei('150'),
-        maxPriorityFeePerGas: bigint = parseGwei('1'),
-      ): Promise<Hex> {
-        const value = 0n
-        const type = 'eip1559'
-
-        const gasEstimate = await client.estimateGas({
-          to: storageAddress,
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-          type,
-          value,
-          data,
-        })
-        log.debug("Received GAS estimate: ", formatGwei(gasEstimate))
-
-        const req = await client.prepareTransactionRequest({
-          to: storageAddress,
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-          type,
-          value,
-          gas: gasEstimate,
-          data,
-          nonceManager,
-        })
-        const tx = await client.signTransaction(req)
-
-        const hash = await client.sendRawTransaction({ serializedTransaction: tx })
-        log.debug("Got transaction hash:", hash)
-        return hash
-      },
-
-      async createEntities(creates: GolemBaseCreate[]): Promise<Hex> {
-        return this.createRawStorageTransaction(createPayload({ creates }))
-      },
-      async createEntitiesAndWaitForReceipt(creates: GolemBaseCreate[]): Promise<TransactionReceipt> {
-        const receipt = await client.waitForTransactionReceipt({
-          hash: await this.createEntities(creates)
-        })
-        return receipt
-      },
-      async updateEntities(updates: GolemBaseUpdate[]): Promise<Hex> {
-        return this.createRawStorageTransaction(createPayload({ updates }))
-      },
-      async updateEntitiesAndWaitForReceipt(updates: GolemBaseUpdate[]): Promise<TransactionReceipt> {
-        const receipt = await client.waitForTransactionReceipt({
-          hash: await this.updateEntities(updates)
-        })
-        return receipt
-      },
-      async deleteEntities(deletes: Hex[]): Promise<Hex> {
-        log.debug("deleteEntities", deletes)
-        const payload = createPayload({ deletes })
-        return this.createRawStorageTransaction(payload)
-      },
-      async deleteEntitiesAndWaitForReceipt(deletes: Hex[]): Promise<TransactionReceipt> {
-        const receipt = await client.waitForTransactionReceipt({
-          hash: await this.deleteEntities(deletes)
-        })
-        return receipt
-      },
-      async extendEntities(extensions: GolemBaseExtend[]): Promise<Hex> {
-        log.debug("extendEntities", extensions)
-        const payload = createPayload({ extensions })
-        return this.createRawStorageTransaction(payload)
-      },
-      async extendEntitiesAndWaitForReceipt(extensions: GolemBaseExtend[]): Promise<TransactionReceipt> {
-        const receipt = await client.waitForTransactionReceipt({
-          hash: await this.extendEntities(extensions)
-        })
-        return receipt
       },
     }))
   }
