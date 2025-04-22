@@ -59,7 +59,6 @@ const stringAnnotation = generateRandomString(32)
 let entitiesOwnedCount = 0
 let entityKey: Hex
 let expirationBlock: number
-let unsubscribe: () => void = () => { }
 
 describe("the internal golem-base client", () => {
   it("should delete all entities", async () => {
@@ -104,10 +103,10 @@ describe("the internal golem-base client", () => {
     const receipts = await client.httpClient.createEntitiesAndWaitForReceipt(creates)
     entitiesOwnedCount += creates.length;
     // Save this key for later
-    ({ entityKey, expirationBlock } = receipts.logs.map(txlog => ({
+    [{ entityKey, expirationBlock }] = receipts.logs.map(txlog => ({
       entityKey: txlog.topics[1] as Hex,
       expirationBlock: parseInt(txlog.data),
-    }))[0])
+    }))
 
     expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount)
   })
