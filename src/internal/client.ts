@@ -17,6 +17,9 @@ import {
   type HttpTransport,
   type WebSocketTransport,
   createPublicClient,
+  parseGwei,
+  formatEther,
+  formatGwei,
 } from 'viem'
 import {
   privateKeyToAccount,
@@ -319,18 +322,36 @@ export function createClient(
         return res || []
       },
 
-      async createRawStorageTransaction(payload: Hex): Promise<Hex> {
+      async createRawStorageTransaction(
+        data: Hex,
+        maxFeePerGas: bigint = parseGwei('150'),
+        maxPriorityFeePerGas: bigint = parseGwei('1'),
+      ): Promise<Hex> {
+        const value = 0n
+        const type = 'eip1559'
+
+        const gasEstimate = await client.estimateGas({
+          to: storageAddress,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+          type,
+          value,
+          data,
+        })
+        log.debug("Received GAS estimate: ", formatGwei(gasEstimate))
+
         const req = await client.prepareTransactionRequest({
           to: storageAddress,
-          maxFeePerGas: 150000000000n,
-          maxPriorityFeePerGas: 1000000000n,
-          type: 'eip1559',
-          value: 0n,
-          gas: 1000000n,
-          data: payload,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+          type,
+          value,
+          gas: gasEstimate,
+          data,
           nonceManager,
         })
         const tx = await client.signTransaction(req)
+
         const hash = await client.sendRawTransaction({ serializedTransaction: tx })
         log.debug("Got transaction hash:", hash)
         return hash
