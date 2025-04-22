@@ -10,6 +10,7 @@ import {
   type GolemBaseCreate,
   Annotation,
 } from "golem-base-sdk-ts"
+import { formatEther } from "viem";
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 
@@ -49,6 +50,7 @@ async function main() {
     transport: "http",
   })
 
+  log.info("Address used:", await client.getOwnerAddress())
   log.info("Number of entities owned:", await numOfEntitiesOwned())
 
   log.info("")
@@ -161,6 +163,13 @@ async function main() {
   )
 
   log.info("Number of entities owned:", await numOfEntitiesOwned())
+
+  log.debug("Current balance: ", formatEther(await client.getRawClient().httpClient.getBalance({
+    address: await client.getOwnerAddress(),
+    blockTag: 'latest'
+  })))
+
+  await (new Promise(resolve => setTimeout(resolve, 1_000)))
 
   unsubscribe()
 }
