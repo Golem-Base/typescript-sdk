@@ -22,8 +22,10 @@ const log = new Logger<ILogObj>({
 async function main() {
   const client: GolemBaseClient = createClient(
     keyBytes,
-    'http://localhost:8545',
-    'ws://localhost:8546',
+    //'http://localhost:8545',
+    //'ws://localhost:8546',
+    'https://api.golembase.demo.golem-base.io',
+    'wss://api.golembase.demo.golem-base.io',
     log
   )
 

@@ -47,7 +47,13 @@ async function deleteAllEntitiesWithIndex(client: internal.GolemBaseClient, inde
 }
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
-const client = internal.createClient(keyBytes, 'http://localhost:8545', 'ws://localhost:8546', log)
+const client = internal.createClient(
+  keyBytes,
+  //'http://localhost:8545',
+  //'ws://localhost:8546',
+  'https://api.golembase.demo.golem-base.io',
+  'wss://api.golembase.demo.golem-base.io',
+  log)
 
 async function ownerAddress(): Promise<Hex> {
   return (await client.httpClient.getAddresses())[0]
@@ -175,9 +181,9 @@ describe("the internal golem-base client", () => {
 
   it("should be able to retrieve the entities that expire at a given block", async () => {
     const entities = await client.httpClient.getEntitiesToExpireAtBlock(BigInt(expirationBlock))
-    expect(entities).to.eql([
+    expect(entities).to.contain(
       entityKey
-    ])
+    )
   })
 
   it("should be able to update entities", async () => {

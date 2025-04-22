@@ -30,10 +30,15 @@ const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 let entitiesOwnedCount = 0
 let entityKey: Hex = "0x"
 let expiryBlock: number
-let unsubscribe: () => void = () => { }
 
 describe("the golem-base client", () => {
-  const client = createClient(keyBytes, 'http://localhost:8545', 'ws://localhost:8546', log)
+  const client = createClient(
+    keyBytes,
+    //'http://localhost:8545',
+    //'ws://localhost:8546',
+    'https://api.golembase.demo.golem-base.io',
+    'wss://api.golembase.demo.golem-base.io',
+    log)
 
   const data = generateRandomString(32)
   const stringAnnotation = generateRandomString(32)
