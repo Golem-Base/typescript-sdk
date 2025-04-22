@@ -122,6 +122,34 @@ async function main() {
   log.info("Number of entities owned:", await numOfEntitiesOwned())
 
   log.info("")
+  log.info("*****************************************")
+  log.info("* Extending the TTL of the third entity *")
+  log.info("*****************************************")
+  log.info("")
+
+  log.info(
+    "The third entity before the extension:",
+    await client.getEntityMetaData(receipts[2].entityKey),
+    "\nStorage value:",
+    Buffer.from(await client.getStorageValue(receipts[2].entityKey), 'base64').toString('binary')
+  )
+
+  log.info("Extending the TTL of the entity...")
+  await client.extendEntities([{
+    entityKey: receipts[2].entityKey,
+    numberOfBlocks: 40,
+  }])
+
+  log.info(
+    "The third entity after the extension:",
+    await client.getEntityMetaData(receipts[2].entityKey),
+    "\nStorage value:",
+    Buffer.from(await client.getStorageValue(receipts[2].entityKey), 'base64').toString('binary')
+  )
+
+  log.info("Number of entities owned:", await numOfEntitiesOwned())
+
+  log.info("")
   log.info("*******************************")
   log.info("* Deleting remaining entities *")
   log.info("*******************************")
