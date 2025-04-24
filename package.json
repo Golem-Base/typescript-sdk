@@ -32,6 +32,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf ./dist",
-    "test": "ts-mocha --recursive --extension .spec.ts ./test"
+    "test": "ts-mocha --recursive --extension .spec.ts ./test",
+    "typedoc": "./node_modules/typedoc/bin/typedoc ./index.ts"
   }
 }
