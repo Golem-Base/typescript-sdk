@@ -1,6 +1,6 @@
 # 🚀 Golem Base
 
-This is part of the [Golem Base](https://github.com/Golem-Base) project, which is a Layer2 Network deployed on Ethereum, acting as a gateway to various Layer 3 Database Chains (DB-Chains).
+This is part of the [Golem Base](https://github.com/Golem-Base) project, which is which is designed as a Layer2 Network deployed on Ethereum, acting as a gateway to various Layer 3 Database Chains (DB-Chains).
 
 > **For an overview of Golem Base, check out our [Litepaper](https://golem-base.io/wp-content/uploads/2025/03/GolemBase-Litepaper.pdf).**
 
