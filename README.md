@@ -20,7 +20,13 @@ The repo also contains an example application to showcase how you can use this S
 
 (Note: As an alternative to installing the demo CLI, you can build the [actual CLI](https://github.com/Golem-Base/golembase-op-geth/blob/main/cmd/golembase/README.md) as it's included in the golembase-op-geth repo.)
 
-When you create a user, it will generate a private key file called private.key and store it in your ~/.config/golembase/ folder on Linux, ~/Library/Application Support/golembase/ on MacOS, and %LOCALAPPDATA%\golembase\ on Windows. (This is a standard folder as per [XDG](https://specifications.freedesktop.org/basedir-spec/latest/).)
+When you create a user, it will generate a private key file called `private.key` and store it in:
+
+- `~/.config/golembase/` on **Linux**  
+- `~/Library/Application Support/golembase/` on **macOS**  
+- `%LOCALAPPDATA%\golembase\` on **Windows**  
+
+(This is a standard folder as per the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).)
 
 You will also need to fund the account. You can do so by typing:
 
@@ -99,7 +105,7 @@ And next, create a file called tsconfig.json, and add the following to it:
 }
 ```
 
-Finally, create a folder called src, where you'll put the index.ts file as described next.
+Finally, create a folder called `src`, where you'll put the `index.ts` file as described next.
 
 ```
 golem-sdk-practice/
@@ -109,47 +115,47 @@ golem-sdk-practice/
 
 ## 🧱 Base Code
 
-You can find some [base starter code here](https://github.com/Golem-Base/typescript-sdk/tree/main/example); copy the index.ts into your own src folder.
+You can find some [base starter code here](https://github.com/Golem-Base/typescript-sdk/tree/main/example); copy the `index.ts` into your own `src` folder.
 
 This is a basic TypeScript application that:
 
 1. Imports several items from the SDK (called "golem-base-sdk-ts") including:
 
-    * createClient: A function that creates a client to interact with GolemBase
-    * type GolemBaseClient: A type that represents the base client for interacting with Golem
-    * type GolemBaseCreate: A type representing a create transaction in GolemBase
-    * Annotation: A type representing an annotation with a key and a value, used for efficient lookups
+    * `createClient`: A function that creates a client to interact with GolemBase
+    * `type GolemBaseClient`: A type that represents the base client for interacting with Golem
+    * `type GolemBaseCreate`: A type representing a create transaction in GolemBase
+    * `Annotation`: A type representing an annotation with a key and a value, used for efficient lookups
 
-2. Reads the private key, which it locates through the xdg-portable module.
+2. Reads the private key, which it locates through the `xdg-portable` module.
 
-3. Create a logger using the tslog TypeScript Logger
+3. Create a logger using the `tslog` TypeScript Logger
 
-4. The main follows, which is where the bulk of the demo code lives.
+4. The `main` follows, which is where the bulk of the demo code lives.
 
-The main function demonstrates how to create, modify, and delete entities:
+The `main` function demonstrates how to create, modify, and delete entities:
 
-1. Creates a client object that connects to the local Geth installation. You supply it two URLs, one http and one ws. You also supply it the data read in from the private key, as well as a reference to the logger.
+1. Creates a client object that connects to the local Geth installation. You supply it two URLs, one `http` and one `ws`. You also supply it the data read in from the private key, as well as a reference to the logger.
 
 2. The code then does some initial housekeeping, including subscribing to logging events.
 
 3. Next it creates three demo entities:
 
-    * One with data "foo" and a time to live of 25 and a numeric annotation of 1
-	* One with data "bar" and a time to live of 2, and a numeric annotation of 2
-	* One with data "qux" and a time to live of 50, and a numeric annotation also of 2
+    * One with data `"foo"` and a time to live of `25` and a numeric annotation of `1`
+	* One with data `"bar"` and a time to live of `2`, and a numeric annotation of `2`
+	* One with data `"qux"` and a time to live of `50`, and a numeric annotation also of `2`
 
 	Notice that the type of each is GolemBaseCreate.
 
-4. It then calls client.createEntities to create the entities within Golem. Notice that this returns a promise of an array of items, each of which contain an entityKey and an expirationBlock.
+4. It then calls client.createEntities to create the entities within Golem. Notice that this returns a promise of an array of items, each of which contain an `entityKey` and an `expirationBlock`.
 
 5. Next, it prints out various information about the current state.
 
 6. It then makes some modifications:
 
-    * It deletes the first entity by calling client.deleteEntities, passing in an array of one element, the first entityKey.
-	* It modifies the third entity by calling client.updateEntities, passing in the modified data
+    * It deletes the first entity by calling `client.deleteEntities`, passing in an array of one element, the first `entityKey`.
+	* It modifies the third entity by calling `client.updateEntities`, passing in the modified data
 
-7. And finally it deletes all the entities. Note that this code demonstrates how to query the entities; it then retrieves the entities, and uses the JavaScript map function to build a list of entityKeys to delete.
+7. And finally it deletes all the entities. Note that this code demonstrates how to query the entities; it then retrieves the entities, and uses the JavaScript `map` function to build a list of `entityKeys` to delete.
 
 
 ## 🏃‍♂️ Building and Running
