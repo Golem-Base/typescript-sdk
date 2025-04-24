@@ -16,6 +16,9 @@ export class Annotation<V> {
 export type StringAnnotation = Annotation<string>
 export type NumericAnnotation = Annotation<number>
 
+/**
+ * Type representing hexadecimal numbers
+ */
 export type Hex = `0x${string}`
 
 /**
