@@ -18,7 +18,7 @@
   "dependencies": {
     "@types/node": "^22.14.1",
     "tslog": "^4.9.3",
-    "viem": "^2.27.2",
+    "viem": "^2.28.0",
     "xdg-portable": "^10.6.0"
   },
   "devDependencies": {
@@ -27,7 +27,7 @@
     "chai": "^5.2.0",
     "mocha": "^11.1.0",
     "ts-mocha": "^11.1.0",
-    "typedoc": "^0.28.2"
+    "typedoc": "^0.28.3"
   },
   "scripts": {
     "build": "tsc",

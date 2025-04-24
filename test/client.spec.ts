@@ -30,10 +30,15 @@ const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 let entitiesOwnedCount = 0
 let entityKey: Hex = "0x"
 let expiryBlock: number
-let unsubscribe: () => void = () => { }
 
 describe("the golem-base client", () => {
-  const client = createClient(keyBytes, 'http://localhost:8545', 'ws://localhost:8546', log)
+  const client = createClient(
+    keyBytes,
+    //'http://localhost:8545',
+    //'ws://localhost:8546',
+    'https://api.golembase.demo.golem-base.io',
+    'wss://api.golembase.demo.golem-base.io',
+    log)
 
   const data = generateRandomString(32)
   const stringAnnotation = generateRandomString(32)
@@ -176,13 +181,13 @@ describe("the golem-base client", () => {
   it("should be able to update entities", async () => {
     const newData = generateRandomString(32)
     const newStringAnnotation = generateRandomString(32)
-    const result = (await client.updateEntities([{
+    const [result] = (await client.updateEntities([{
       entityKey,
       ttl: 10,
       data: newData,
       stringAnnotations: [new Annotation("key", newStringAnnotation)],
       numericAnnotations: [new Annotation("ix", 2)],
-    }]))[0]
+    }]))
     expect(result).to.exist
     log.debug(result)
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
@@ -190,14 +195,14 @@ describe("the golem-base client", () => {
 
   it("should be able to extend entities", async () => {
     const numberOfBlocks = 20
-    const result = (await client.extendEntities([{
+    const [result] = (await client.extendEntities([{
       entityKey,
       numberOfBlocks,
-    }]))[0]
+    }]))
     expect(result).to.exist
-    log.debug(`Extend result: ${JSON.stringify(result)}`)
+    log.debug(`Extend result: ${JSON.stringify(result, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`)
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
-    expect(result.newExpirationBlock - result.oldExpirationBlock == numberOfBlocks)
+    expect(result.newExpirationBlock - result.oldExpirationBlock == BigInt(numberOfBlocks))
   })
 
   it("should be able to delete entities", async () => {

@@ -10,6 +10,7 @@ import {
   type GolemBaseCreate,
   Annotation,
 } from "golem-base-sdk-ts"
+import { formatEther } from "viem";
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 
@@ -21,8 +22,10 @@ const log = new Logger<ILogObj>({
 async function main() {
   const client: GolemBaseClient = createClient(
     keyBytes,
-    'http://localhost:8545',
-    'ws://localhost:8546',
+    //'http://localhost:8545',
+    //'ws://localhost:8546',
+    'https://api.golembase.demo.golem-base.io',
+    'wss://api.golembase.demo.golem-base.io',
     log
   )
 
@@ -49,6 +52,7 @@ async function main() {
     transport: "http",
   })
 
+  log.info("Address used:", await client.getOwnerAddress())
   log.info("Number of entities owned:", await numOfEntitiesOwned())
 
   log.info("")
@@ -122,6 +126,34 @@ async function main() {
   log.info("Number of entities owned:", await numOfEntitiesOwned())
 
   log.info("")
+  log.info("*****************************************")
+  log.info("* Extending the TTL of the third entity *")
+  log.info("*****************************************")
+  log.info("")
+
+  log.info(
+    "The third entity before the extension:",
+    await client.getEntityMetaData(receipts[2].entityKey),
+    "\nStorage value:",
+    Buffer.from(await client.getStorageValue(receipts[2].entityKey), 'base64').toString('binary')
+  )
+
+  log.info("Extending the TTL of the entity...")
+  await client.extendEntities([{
+    entityKey: receipts[2].entityKey,
+    numberOfBlocks: 40,
+  }])
+
+  log.info(
+    "The third entity after the extension:",
+    await client.getEntityMetaData(receipts[2].entityKey),
+    "\nStorage value:",
+    Buffer.from(await client.getStorageValue(receipts[2].entityKey), 'base64').toString('binary')
+  )
+
+  log.info("Number of entities owned:", await numOfEntitiesOwned())
+
+  log.info("")
   log.info("*******************************")
   log.info("* Deleting remaining entities *")
   log.info("*******************************")
@@ -133,6 +165,13 @@ async function main() {
   )
 
   log.info("Number of entities owned:", await numOfEntitiesOwned())
+
+  log.debug("Current balance: ", formatEther(await client.getRawClient().httpClient.getBalance({
+    address: await client.getOwnerAddress(),
+    blockTag: 'latest'
+  })))
+
+  await (new Promise(resolve => setTimeout(resolve, 1_000)))
 
   unsubscribe()
 }

@@ -149,8 +149,8 @@ export interface GolemBaseClient {
    */
   extendEntities(extensions: GolemBaseExtend[]): Promise<{
     entityKey: Hex,
-    oldExpirationBlock: number,
-    newExpirationBlock: number,
+    oldExpirationBlock: bigint,
+    newExpirationBlock: bigint,
   }[]>
 
   /**
@@ -172,7 +172,7 @@ export interface GolemBaseClient {
     fromBlock: bigint,
     onCreated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
     onUpdated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
-    onExtended: (args: { entityKey: Hex, oldExpirationBlock: number, newExpirationBlock: number, }) => void,
+    onExtended: (args: { entityKey: Hex, oldExpirationBlock: bigint, newExpirationBlock: bigint, }) => void,
     onDeleted: (args: { entityKey: Hex, }) => void,
     onError?: ((error: Error) => void) | undefined,
     pollingInterval?: number,
@@ -180,15 +180,18 @@ export interface GolemBaseClient {
   }): () => void
 }
 
-function parseExtendTTLData(data: Hex): { oldExpirationBlock: number, newExpirationBlock: number, } {
-  // Take the first 64 bytes, so 64 hex characters
-  // We skip the initial 0x
+function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirationBlock: bigint, } {
+  // Take the first 64 bytes by masking the rest (shift 1 to the left 256 positions, then negate the number)
   // Example:
   // 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 012f
   //    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0143
-  const oldExpirationBlock = parseInt(`0x${data.substring(2, 2 + 64)}`)
-  // Take the next 32 bytes
-  const newExpirationBlock = parseInt(`0x${data.substring(66, 66 + 64)}`)
+  // mask this with 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
+  //                   1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111
+  // to obtain 0x143
+  // and then shift the original number to the right by 256 to obtain 0x12f
+  const dataParsed = BigInt(data)
+  const newExpirationBlock = dataParsed & ((1n << 256n) - 1n)
+  const oldExpirationBlock = dataParsed >> 256n
   return {
     oldExpirationBlock,
     newExpirationBlock,
@@ -301,8 +304,8 @@ export function createClient(
     },
 
     async extendEntities(extensions: GolemBaseExtend[]): Promise<{
-      oldExpirationBlock: number,
-      newExpirationBlock: number,
+      oldExpirationBlock: bigint,
+      newExpirationBlock: bigint,
       entityKey: Hex
     }[]> {
       const receipt = await client.httpClient.extendEntitiesAndWaitForReceipt(extensions)
@@ -321,7 +324,7 @@ export function createClient(
       fromBlock: bigint,
       onCreated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
       onUpdated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
-      onExtended: (args: { entityKey: Hex, oldExpirationBlock: number, newExpirationBlock: number, }) => void,
+      onExtended: (args: { entityKey: Hex, oldExpirationBlock: bigint, newExpirationBlock: bigint, }) => void,
       onDeleted: (args: { entityKey: Hex, }) => void,
       onError?: (error: Error) => void,
       pollingInterval?: number,

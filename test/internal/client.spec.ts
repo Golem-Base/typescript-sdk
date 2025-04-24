@@ -47,7 +47,13 @@ async function deleteAllEntitiesWithIndex(client: internal.GolemBaseClient, inde
 }
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
-const client = internal.createClient(keyBytes, 'http://localhost:8545', 'ws://localhost:8546', log)
+const client = internal.createClient(
+  keyBytes,
+  //'http://localhost:8545',
+  //'ws://localhost:8546',
+  'https://api.golembase.demo.golem-base.io',
+  'wss://api.golembase.demo.golem-base.io',
+  log)
 
 async function ownerAddress(): Promise<Hex> {
   return (await client.httpClient.getAddresses())[0]
@@ -59,7 +65,6 @@ const stringAnnotation = generateRandomString(32)
 let entitiesOwnedCount = 0
 let entityKey: Hex
 let expirationBlock: number
-let unsubscribe: () => void = () => { }
 
 describe("the internal golem-base client", () => {
   it("should delete all entities", async () => {
@@ -104,10 +109,10 @@ describe("the internal golem-base client", () => {
     const receipts = await client.httpClient.createEntitiesAndWaitForReceipt(creates)
     entitiesOwnedCount += creates.length;
     // Save this key for later
-    ({ entityKey, expirationBlock } = receipts.logs.map(txlog => ({
+    [{ entityKey, expirationBlock }] = receipts.logs.map(txlog => ({
       entityKey: txlog.topics[1] as Hex,
       expirationBlock: parseInt(txlog.data),
-    }))[0])
+    }))
 
     expect(await numOfEntitiesOwnedBy(client, await ownerAddress())).to.eql(entitiesOwnedCount)
   })
@@ -176,9 +181,9 @@ describe("the internal golem-base client", () => {
 
   it("should be able to retrieve the entities that expire at a given block", async () => {
     const entities = await client.httpClient.getEntitiesToExpireAtBlock(BigInt(expirationBlock))
-    expect(entities).to.eql([
+    expect(entities).to.contain(
       entityKey
-    ])
+    )
   })
 
   it("should be able to update entities", async () => {
