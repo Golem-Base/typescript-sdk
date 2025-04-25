@@ -9,6 +9,7 @@ import {
   type GolemBaseClient,
   type GolemBaseCreate,
   Annotation,
+  Tagged,
 } from "golem-base-sdk-ts"
 import { formatEther } from "viem";
 
@@ -20,12 +21,12 @@ const log = new Logger<ILogObj>({
 })
 
 async function main() {
-  const client: GolemBaseClient = createClient(
-    keyBytes,
+  const client: GolemBaseClient = await createClient(
+    new Tagged("privatekey", keyBytes),
     //'http://localhost:8545',
     //'ws://localhost:8546',
     'https://api.golembase.demo.golem-base.io',
-    'wss://api.golembase.demo.golem-base.io',
+    'wss://ws-api.golembase.demo.golem-base.io',
     log
   )
 
@@ -48,7 +49,7 @@ async function main() {
     onDeleted: (args) => {
       log.info("Got deletion event:", args)
     },
-    pollingInterval: 50,
+    pollingInterval: 500,
     transport: "http",
   })
 
@@ -171,7 +172,7 @@ async function main() {
     blockTag: 'latest'
   })))
 
-  await (new Promise(resolve => setTimeout(resolve, 1_000)))
+  await (new Promise(resolve => setTimeout(resolve, 500)))
 
   unsubscribe()
 }

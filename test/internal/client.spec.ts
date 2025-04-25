@@ -13,10 +13,12 @@ import {
   type GolemBaseCreate,
   type Hex,
   Annotation,
-} from "../.."
+  Tagged,
+} from "../../index.ts"
 import {
   generateRandomString,
 } from "../utils.ts"
+import { GolemBaseClient } from '../../src/internal/client.ts'
 
 const log = new Logger<ILogObj>({
   type: "pretty",
@@ -41,22 +43,16 @@ async function deleteAllEntitiesWithIndex(client: internal.GolemBaseClient, inde
   return Promise.all(
     queryResult.map(async (res: internal.GolemQueryEntitiesReturnType) => {
       log.debug("Deleting entity with key", res.key)
-      return await client.httpClient.deleteEntitiesAndWaitForReceipt([res.key])
+      return await client.walletClient.deleteEntitiesAndWaitForReceipt([res.key])
     })
   )
 }
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
-const client = internal.createClient(
-  keyBytes,
-  //'http://localhost:8545',
-  //'ws://localhost:8546',
-  'https://api.golembase.demo.golem-base.io',
-  'wss://api.golembase.demo.golem-base.io',
-  log)
+let client: GolemBaseClient
 
 async function ownerAddress(): Promise<Hex> {
-  return (await client.httpClient.getAddresses())[0]
+  return (await client.walletClient.getAddresses())[0]
 }
 
 const data = generateRandomString(32)
@@ -67,12 +63,25 @@ let entityKey: Hex
 let expirationBlock: number
 
 describe("the internal golem-base client", () => {
+  it("can be created", async () => {
+    client = await internal.createClient(
+      new Tagged("privatekey", keyBytes),
+      //'http://localhost:8545',
+      //'ws://localhost:8546',
+      'https://api.golembase.demo.golem-base.io',
+      'wss://ws-api.golembase.demo.golem-base.io',
+      log)
+
+    expect(client).to.exist
+    client.walletClient.getBalance()
+  })
+
   it("should delete all entities", async () => {
-    await client.httpClient.deleteEntitiesAndWaitForReceipt(await client.httpClient.getAllEntityKeys())
+    await client.walletClient.deleteEntitiesAndWaitForReceipt(await client.httpClient.getAllEntityKeys())
   })
 
   it("should be able to create entities", async () => {
-    const hash = await client.httpClient.createEntities([{
+    const hash = await client.walletClient.createEntities([{
       data: generateRandomString(32),
       ttl: 25,
       stringAnnotations: [new Annotation("key", generateRandomString(32))],
@@ -106,7 +115,7 @@ describe("the internal golem-base client", () => {
         numericAnnotations: [new Annotation("ix", 3)]
       }
     ]
-    const receipts = await client.httpClient.createEntitiesAndWaitForReceipt(creates)
+    const receipts = await client.walletClient.createEntitiesAndWaitForReceipt(creates)
     entitiesOwnedCount += creates.length;
     // Save this key for later
     [{ entityKey, expirationBlock }] = receipts.logs.map(txlog => ({
@@ -189,7 +198,7 @@ describe("the internal golem-base client", () => {
   it("should be able to update entities", async () => {
     const newData = generateRandomString(32)
     const newStringAnnotation = generateRandomString(32)
-    const result = await client.httpClient.updateEntitiesAndWaitForReceipt([{
+    const result = await client.walletClient.updateEntitiesAndWaitForReceipt([{
       entityKey,
       ttl: 10,
       data: newData,
@@ -203,7 +212,7 @@ describe("the internal golem-base client", () => {
 
   it("should be able to extend entities", async () => {
     const numberOfBlocks = 20
-    const result = await client.httpClient.extendEntitiesAndWaitForReceipt([{
+    const result = await client.walletClient.extendEntitiesAndWaitForReceipt([{
       entityKey,
       numberOfBlocks,
     }])

@@ -15,7 +15,8 @@ import {
   type Hex,
   type GolemBaseCreate,
   Annotation,
-} from ".."
+  Tagged,
+} from "../index.ts"
 import {
   generateRandomString,
 } from "./utils.ts"
@@ -30,15 +31,20 @@ const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 let entitiesOwnedCount = 0
 let entityKey: Hex = "0x"
 let expiryBlock: number
+let client: GolemBaseClient
 
 describe("the golem-base client", () => {
-  const client = createClient(
-    keyBytes,
-    //'http://localhost:8545',
-    //'ws://localhost:8546',
-    'https://api.golembase.demo.golem-base.io',
-    'wss://api.golembase.demo.golem-base.io',
-    log)
+  it("can be created", async () => {
+    client = await createClient(
+      new Tagged("privatekey", keyBytes),
+      //'http://localhost:8545',
+      //'ws://localhost:8546',
+      'https://api.golembase.demo.golem-base.io',
+      'wss://ws-api.golembase.demo.golem-base.io',
+      log)
+
+    expect(client).to.exist
+  })
 
   const data = generateRandomString(32)
   const stringAnnotation = generateRandomString(32)

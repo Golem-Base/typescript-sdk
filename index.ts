@@ -16,6 +16,20 @@ export class Annotation<V> {
 export type StringAnnotation = Annotation<string>
 export type NumericAnnotation = Annotation<number>
 
+export class Tagged<Tag, Data> {
+  readonly tag: Tag
+  readonly data: Data
+
+  constructor(tag: Tag, data: Data) {
+    this.tag = tag
+    this.data = data
+  }
+}
+
+export type AccountData =
+  Tagged<"privatekey", Buffer> |
+  Tagged<"ethereumprovider", { request(...args: any): Promise<any> }>
+
 /**
  * Type representing hexadecimal numbers
  */

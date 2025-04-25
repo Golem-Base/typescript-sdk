@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>GolemBase in the browser</title>
+    <script src="../dist/golem-base-sdk.min.js"></script>
+    <script src="https://unpkg.com/tslog/dist/browser/index.js"></script>
+</head>
+<body>
+    <script>
+      const log = new tslog.Logger({
+        name: "main",
+        type: "pretty",
+        minLevel: 2,
+      })
+
+      log.info("Waiting for a metamask provider...")
+      window.addEventListener(
+        "eip6963:announceProvider",
+        (event) => { // EIP6963AnnounceProviderEvent
+          const wallet = event.detail
+
+          log.info("Creating golem-base client...");
+          let unsubscribe
+          (async () => {
+            try {
+              const client = await golem_base_sdk.createClient(
+                new golem_base_sdk.Tagged("ethereumprovider", wallet.provider),
+                'https://api.golembase.demo.golem-base.io',
+                'wss://ws-api.golembase.demo.golem-base.io',
+                log
+              );
+
+              const block = await client.getRawClient().httpClient.getBlockNumber()
+              unsubscribe = client.watchLogs({
+                fromBlock: block,
+                onCreated: (args) => {
+                  log.info("Got creation event:", args)
+                },
+                onUpdated: (args) => {
+                  log.info("Got update event:", args)
+                },
+                onExtended: (args) => {
+                  log.info("Got extension event:", args)
+                },
+                onDeleted: (args) => {
+                  log.info("Got deletion event:", args)
+                },
+                pollingInterval: 500,
+                transport: "http",
+              })
+
+              log.info("Entity count:", await client.getEntityCount())
+
+              log.info("Owner address:", await client.getOwnerAddress())
+
+              log.info("Account balance (http):", Number(await client.getRawClient().httpClient.getBalance({
+                address: await client.getOwnerAddress(),
+                blockTag: "latest"
+              })))
+
+              log.info("Account balance (metamask):", Number(await client.getRawClient().walletClient.getBalance({
+                address: await client.getOwnerAddress(),
+                blockTag: "latest"
+              })))
+
+              log.info("Account balance (metamask, literal):", Number(await client.getRawClient().walletClient.getBalance({
+                address: "0x75ae6C361940cE1be3f425F777b2d0a66434852e",
+                blockTag: "latest"
+              })))
+
+              const [receipt] = await client.createEntities([{
+                data: "foo",
+                ttl: 25,
+                stringAnnotations: [new golem_base_sdk.Annotation("key", "foo")],
+                numericAnnotations: [new golem_base_sdk.Annotation("ix", 1)]
+              }])
+
+              log.debug(receipt)
+
+              log.info("Entity count:", await client.getEntityCount())
+              log.info("Created entity:", receipt.entityKey)
+
+              log.info("Entities found by query:", await client.getEntitiesForStringAnnotationValue("key", "foo"))
+
+              await client.deleteEntities([receipt.entityKey])
+
+              log.info("Entity count:", await client.getEntityCount())
+            } catch (e) {
+              log.error(e)
+            } finally {
+              if (unsubscribe) {
+                unsubscribe()
+              }
+            }
+          })();
+        }
+      )
+
+      // Notify event listeners and other parts of the dapp that a provider is requested.
+      log.info("Dispatching events...")
+      window.dispatchEvent(new Event("eip6963:requestProvider"))
+    </script>
+</body>
+</html>

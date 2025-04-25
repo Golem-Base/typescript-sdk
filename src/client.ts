@@ -10,6 +10,7 @@ import {
   type GolemBaseUpdate,
   type GolemBaseExtend,
   type EntityMetaData,
+  type AccountData,
 } from ".."
 
 export interface GolemBaseClient {
@@ -207,17 +208,19 @@ function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirat
  *
  * @returns A client object
  */
-export function createClient(
-  key: Buffer,
+export async function createClient(
+  accountData: AccountData,
   rpcUrl: string,
   wsUrl: string,
-  log: Logger<ILogObj> = new Logger<ILogObj>({
+  logger: Logger<ILogObj> = new Logger<ILogObj>({
     type: "hidden",
     hideLogPositionForProduction: true,
   })
-): GolemBaseClient {
+): Promise<GolemBaseClient> {
 
-  const client = internal.createClient(key, rpcUrl, wsUrl, log)
+  const log = logger.getSubLogger({ name: "client" });
+
+  const client = await internal.createClient(accountData, rpcUrl, wsUrl, log)
 
   return {
     getRawClient() {
@@ -229,7 +232,7 @@ export function createClient(
     },
 
     async getOwnerAddress(): Promise<Hex> {
-      return (await client.httpClient.getAddresses())[0]
+      return (await client.walletClient.getAddresses())[0]
     },
 
     async getEntityMetaData(key: Hex): Promise<EntityMetaData> {
@@ -273,7 +276,7 @@ export function createClient(
         entityKey: Hex,
       }[]
     > {
-      const receipt = await client.httpClient.createEntitiesAndWaitForReceipt(creates)
+      const receipt = await client.walletClient.createEntitiesAndWaitForReceipt(creates)
       log.debug("Got receipt:", receipt)
       return receipt.logs.map(txlog => ({
         expirationBlock: parseInt(txlog.data),
@@ -287,7 +290,7 @@ export function createClient(
         entityKey: Hex,
       }[]
     > {
-      const receipt = await client.httpClient.updateEntitiesAndWaitForReceipt(updates)
+      const receipt = await client.walletClient.updateEntitiesAndWaitForReceipt(updates)
       log.debug("Got receipt:", receipt)
       return receipt.logs.map(txlog => ({
         expirationBlock: parseInt(txlog.data),
@@ -296,7 +299,7 @@ export function createClient(
     },
 
     async deleteEntities(deletes: Hex[]): Promise<{ entityKey: Hex }[]> {
-      const receipt = await client.httpClient.deleteEntitiesAndWaitForReceipt(deletes)
+      const receipt = await client.walletClient.deleteEntitiesAndWaitForReceipt(deletes)
       log.debug("Got receipt:", receipt)
       return receipt.logs.map(txlog => ({
         entityKey: txlog.topics[1] as Hex
@@ -308,7 +311,7 @@ export function createClient(
       newExpirationBlock: bigint,
       entityKey: Hex
     }[]> {
-      const receipt = await client.httpClient.extendEntitiesAndWaitForReceipt(extensions)
+      const receipt = await client.walletClient.extendEntitiesAndWaitForReceipt(extensions)
       log.debug("Got receipt:", receipt)
       return receipt.logs.map(txlog => {
         const { oldExpirationBlock, newExpirationBlock, } = parseExtendTTLData(txlog.data)
@@ -332,10 +335,8 @@ export function createClient(
     }): () => void {
       let c
       if (args.transport === "http") {
-        log.info("http")
         c = client.httpClient
       } else {
-        log.info("ws")
         c = client.wsClient
       }
 
