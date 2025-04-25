@@ -335,10 +335,8 @@ export async function createClient(
     }): () => void {
       let c
       if (args.transport === "http") {
-        log.info("http")
         c = client.httpClient
       } else {
-        log.info("ws")
         c = client.wsClient
       }
 
