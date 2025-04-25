@@ -37,8 +37,7 @@
   },
   "scripts": {
     "clean": "rm -rf ./dist",
-    "build": "tsc",
-    "rollup": "rm -rf ./dist && tsc && rollup -c",
+    "build": "rm -rf ./dist && tsc && rollup -c",
     "test": "ts-mocha --recursive --extension .spec.ts ./test",
     "typedoc": "./node_modules/typedoc/bin/typedoc ./index.ts"
   }
