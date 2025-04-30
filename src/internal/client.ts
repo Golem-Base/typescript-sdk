@@ -377,13 +377,12 @@ export async function createClient(
        * Get all entity keys for entities that will expire at the given block number
        */
       async getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<GolemGetEntitiesToExpireAtBlockReturnType> {
-        const res = await client.request<GolemGetEntitiesToExpireAtBlockSchema>({
+        return client.request<GolemGetEntitiesToExpireAtBlockSchema>({
           method: 'golembase_getEntitiesToExpireAtBlock',
           // TODO: bigint gets serialised in json as a string, which the api doesn't accept.
           // is there a better workaround?
           params: [Number(blockNumber)]
         })
-        return res || []
       },
       async getEntityCount(): Promise<GolemGetEntityCountReturnType> {
         return client.request<GolemGetEntityCountSchema>({
@@ -392,25 +391,22 @@ export async function createClient(
         })
       },
       async getAllEntityKeys(): Promise<GolemGetAllEntityKeysReturnType> {
-        const res = await client.request<GolemGetAllEntityKeysSchema>({
+        return await client.request<GolemGetAllEntityKeysSchema>({
           method: 'golembase_getAllEntityKeys',
           params: []
         })
-        return res || []
       },
       async getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<GolemGetEntitiesOfOwnerReturnType> {
-        const res = await client.request<GolemGetEntitiesOfOwnerSchema>({
+        return client.request<GolemGetEntitiesOfOwnerSchema>({
           method: 'golembase_getEntitiesOfOwner',
           params: [args]
         })
-        return res || []
       },
       async queryEntities(args: GolemQueryEntitiesInputParams): Promise<[GolemQueryEntitiesReturnType]> {
-        const res = await client.request<GolemQueryEntitiesSchema>({
+        return client.request<GolemQueryEntitiesSchema>({
           method: 'golembase_queryEntities',
           params: [args]
         })
-        return res || []
       },
     }))
   }
