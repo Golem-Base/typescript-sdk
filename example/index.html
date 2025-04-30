@@ -22,6 +22,18 @@
           log.info("Creating golem-base client...");
           let unsubscribe
           (async () => {
+
+            async function getEntitiesOwned(client) {
+              return client.getEntitiesOfOwner(await client.getOwnerAddress())
+            }
+
+            async function numOfEntitiesOwned(client) {
+              const entitiesOwned = await getEntitiesOwned(client)
+              log.debug("Entities owned:", entitiesOwned)
+              log.debug("Number of entities owned:", entitiesOwned.length)
+              return entitiesOwned.length
+            }
+
             try {
               const client = await golem_base_sdk.createClient(
                 new golem_base_sdk.Tagged("ethereumprovider", wallet.provider),
@@ -49,7 +61,7 @@
                 transport: "http",
               })
 
-              log.info("Entity count:", await client.getEntityCount())
+              log.info("Entity count:", await numOfEntitiesOwned(client))
 
               log.info("Owner address:", await client.getOwnerAddress())
 
@@ -77,7 +89,7 @@
 
               log.debug(receipt)
 
-              log.info("Entity count:", await client.getEntityCount())
+              log.info("Entity count:", await numOfEntitiesOwned(client))
               log.info("Created entity:", receipt.entityKey)
 
               log.info("Entities found by query:",
@@ -89,7 +101,7 @@
 
               await client.deleteEntities([receipt.entityKey])
 
-              log.info("Entity count:", await client.getEntityCount())
+              log.info("Entity count:", await numOfEntitiesOwned(client))
             } catch (e) {
               log.error(e)
             } finally {

@@ -50,8 +50,12 @@ describe("the golem-base client", () => {
   const data = generateRandomBytes(32)
   const stringAnnotation = generateRandomString(32)
 
+  async function getEntitiesOwned(client: GolemBaseClient): Promise<Hex[]> {
+    return client.getEntitiesOfOwner(await client.getOwnerAddress())
+  }
+
   async function numOfEntitiesOwned(client: GolemBaseClient): Promise<number> {
-    const entitiesOwned = await client.getEntitiesOfOwner(await client.getOwnerAddress())
+    const entitiesOwned = await getEntitiesOwned(client)
     log.debug("Entities owned:", entitiesOwned)
     log.debug("Number of entities owned:", entitiesOwned.length)
     return entitiesOwned.length
@@ -69,8 +73,8 @@ describe("the golem-base client", () => {
     )
   }
 
-  it("should delete all existing entities", async () => {
-    await client.deleteEntities(await client.getAllEntityKeys())
+  it("should delete all our existing entities", async () => {
+    await client.deleteEntities(await getEntitiesOwned(client))
   })
 
   it("should be able to create entities", async () => {
@@ -118,12 +122,12 @@ describe("the golem-base client", () => {
   })
 
   it("should have the right amount of entities", async () => {
-    const entityCount = await client.getEntityCount()
+    const entityCount = await numOfEntitiesOwned(client)
     expect(entityCount).to.eql(entitiesOwnedCount, "wrong number of entities in DB")
   })
 
   it("should have the right entity keys", async () => {
-    const allEntityKeys = await client.getAllEntityKeys()
+    const allEntityKeys = await getEntitiesOwned(client)
     expect(allEntityKeys).to.have.a.lengthOf(entitiesOwnedCount, "wrong number of entities in DB")
     expect(allEntityKeys).to.include(entityKey, "expected entity not in DB")
   })
