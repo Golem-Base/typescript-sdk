@@ -17,8 +17,6 @@ import {
   type HttpTransport,
   type WebSocketTransport,
   createPublicClient,
-  parseGwei,
-  formatGwei,
   custom,
   CustomTransport,
 } from 'viem'
@@ -102,31 +100,68 @@ type GolemQueryEntitiesSchema = {
 }
 
 export type GolemBaseActions = {
-  getStorageValue(args: GolemGetStorageValueInputParams): Promise<GolemGetStorageValueReturnType>
-  getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<GolemGetEntityMetaDataReturnType>
+  getStorageValue(args: GolemGetStorageValueInputParams): Promise<Uint8Array>
+  getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<EntityMetaData>
   /**
    * Get all entity keys for entities that will expire at the given block number
    */
-  getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<GolemGetEntitiesToExpireAtBlockReturnType>
-  getEntitiesForStringAnnotationValue(annotation: StringAnnotation): Promise<GolemGetEntitiesForStringAnnotationValueReturnType>
-  getEntitiesForNumericAnnotationValue(annotation: NumericAnnotation): Promise<GolemGetEntitiesForNumericAnnotationValueReturnType>
-  getEntityCount(): Promise<GolemGetEntityCountReturnType>
-  getAllEntityKeys(): Promise<GolemGetAllEntityKeysReturnType>
-  getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<GolemGetEntitiesOfOwnerReturnType>
-  queryEntities(args: GolemQueryEntitiesInputParams): Promise<GolemQueryEntitiesReturnType[]>
+  getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]>
+  getEntityCount(): Promise<number>
+  getAllEntityKeys(): Promise<Hex[]>
+  getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<Hex[]>
+  queryEntities(args: GolemQueryEntitiesInputParams): Promise<{ key: Hex, value: Uint8Array, }[]>
 }
 
 export type GolemBaseWalletActions = {
-  createRawStorageTransaction(payload: Hex): Promise<Hex>
+  createRawStorageTransaction(
+    payload: Hex,
+    maxFeePerGas: bigint | undefined,
+    maxPriorityFeePerGas: bigint | undefined,
+  ): Promise<Hex>
 
-  createEntities(creates: GolemBaseCreate[]): Promise<Hex>
-  createEntitiesAndWaitForReceipt(creates: GolemBaseCreate[]): Promise<TransactionReceipt>
-  updateEntities(updates: GolemBaseUpdate[]): Promise<Hex>
-  updateEntitiesAndWaitForReceipt(updates: GolemBaseUpdate[]): Promise<TransactionReceipt>
-  deleteEntities(deletes: Hex[]): Promise<Hex>
-  deleteEntitiesAndWaitForReceipt(deletes: Hex[]): Promise<TransactionReceipt>
-  extendEntities(extensions: GolemBaseExtend[]): Promise<Hex>
-  extendEntitiesAndWaitForReceipt(extensions: GolemBaseExtend[]): Promise<TransactionReceipt>
+  createEntities(
+    creates: GolemBaseCreate[],
+    maxFeePerGas?: bigint | undefined,
+    maxPriorityFeePerGas?: bigint | undefined,
+  ): Promise<Hex>
+  createEntitiesAndWaitForReceipt(
+    creates: GolemBaseCreate[],
+    maxFeePerGas?: bigint | undefined,
+    maxPriorityFeePerGas?: bigint | undefined,
+  ): Promise<TransactionReceipt>
+
+  updateEntities(
+    updates: GolemBaseUpdate[],
+    maxFeePerGas?: bigint | undefined,
+    maxPriorityFeePerGas?: bigint | undefined,
+  ): Promise<Hex>
+  updateEntitiesAndWaitForReceipt(
+    updates: GolemBaseUpdate[],
+    maxFeePerGas?: bigint | undefined,
+    maxPriorityFeePerGas?: bigint | undefined,
+  ): Promise<TransactionReceipt>
+
+  deleteEntities(
+    deletes: Hex[],
+    maxFeePerGas?: bigint | undefined,
+    maxPriorityFeePerGas?: bigint | undefined,
+  ): Promise<Hex>
+  deleteEntitiesAndWaitForReceipt(
+    deletes: Hex[],
+    maxFeePerGas?: bigint | undefined,
+    maxPriorityFeePerGas?: bigint | undefined,
+  ): Promise<TransactionReceipt>
+
+  extendEntities(
+    extensions: GolemBaseExtend[],
+    maxFeePerGas?: bigint | undefined,
+    maxPriorityFeePerGas?: bigint | undefined,
+  ): Promise<Hex>
+  extendEntitiesAndWaitForReceipt(
+    extensions: GolemBaseExtend[],
+    maxFeePerGas?: bigint | undefined,
+    maxPriorityFeePerGas?: bigint | undefined,
+  ): Promise<TransactionReceipt>
 }
 
 export type AllActions<
@@ -267,28 +302,19 @@ export async function createClient(
   }
   const walletClient = await mkWalletClient()
 
+  const defaultMaxFeePerGas = undefined
+  const defaultMaxPriorityFeePerGas = undefined
+
   return {
     walletClient: walletClient.extend(publicActions).extend(client => ({
       async createRawStorageTransaction(
         data: Hex,
-        maxFeePerGas: bigint = parseGwei('150'),
-        maxPriorityFeePerGas: bigint = parseGwei('1'),
+        maxFeePerGas: bigint | undefined,
+        maxPriorityFeePerGas: bigint | undefined,
       ): Promise<Hex> {
         const value = 0n
         const type = 'eip1559'
 
-        const gasEstimate = await client.estimateGas({
-          to: storageAddress,
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-          type,
-          value,
-          data,
-        })
-        log.debug("Received GAS estimate: ", formatGwei(gasEstimate))
-
-        // TODO: why do we need to specify the account and the chain again here?
-        // We don't need this for other methods...
         const hash = await client.sendTransaction({
           account: client.account,
           chain: client.chain,
@@ -297,7 +323,7 @@ export async function createClient(
           maxPriorityFeePerGas,
           type,
           value,
-          gas: gasEstimate,
+          gas: undefined,
           data,
           nonceManager,
         })
@@ -306,43 +332,104 @@ export async function createClient(
         return hash
       },
 
-      async createEntities(creates: GolemBaseCreate[]): Promise<Hex> {
-        return this.createRawStorageTransaction(createPayload({ creates }))
+      async createEntities(
+        creates: GolemBaseCreate[],
+        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+      ): Promise<Hex> {
+        return this.createRawStorageTransaction(
+          createPayload({ creates }),
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+        )
       },
-      async createEntitiesAndWaitForReceipt(creates: GolemBaseCreate[]): Promise<TransactionReceipt> {
+
+      async createEntitiesAndWaitForReceipt(
+        creates: GolemBaseCreate[],
+        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+      ): Promise<TransactionReceipt> {
         const receipt = await client.waitForTransactionReceipt({
-          hash: await this.createEntities(creates)
+          hash: await this.createEntities(
+            creates, maxFeePerGas, maxPriorityFeePerGas
+          )
         })
         return receipt
       },
-      async updateEntities(updates: GolemBaseUpdate[]): Promise<Hex> {
-        return this.createRawStorageTransaction(createPayload({ updates }))
+
+      async updateEntities(
+        updates: GolemBaseUpdate[],
+        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+      ): Promise<Hex> {
+        return this.createRawStorageTransaction(
+          createPayload({ updates }),
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+        )
       },
-      async updateEntitiesAndWaitForReceipt(updates: GolemBaseUpdate[]): Promise<TransactionReceipt> {
+
+      async updateEntitiesAndWaitForReceipt(
+        updates: GolemBaseUpdate[],
+        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+      ): Promise<TransactionReceipt> {
         const receipt = await client.waitForTransactionReceipt({
-          hash: await this.updateEntities(updates)
+          hash: await this.updateEntities(
+            updates, maxFeePerGas, maxPriorityFeePerGas,
+          )
         })
         return receipt
       },
-      async deleteEntities(deletes: Hex[]): Promise<Hex> {
+
+      async deleteEntities(
+        deletes: Hex[],
+        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+      ): Promise<Hex> {
         log.debug("deleteEntities", deletes)
-        const payload = createPayload({ deletes })
-        return this.createRawStorageTransaction(payload)
+        return this.createRawStorageTransaction(
+          createPayload({ deletes }),
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+        )
       },
-      async deleteEntitiesAndWaitForReceipt(deletes: Hex[]): Promise<TransactionReceipt> {
+
+      async deleteEntitiesAndWaitForReceipt(
+        deletes: Hex[],
+        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+      ): Promise<TransactionReceipt> {
         const receipt = await client.waitForTransactionReceipt({
-          hash: await this.deleteEntities(deletes)
+          hash: await this.deleteEntities(
+            deletes, maxFeePerGas, maxPriorityFeePerGas,
+          )
         })
         return receipt
       },
-      async extendEntities(extensions: GolemBaseExtend[]): Promise<Hex> {
+
+      async extendEntities(
+        extensions: GolemBaseExtend[],
+        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+      ): Promise<Hex> {
         log.debug("extendEntities", extensions)
-        const payload = createPayload({ extensions })
-        return this.createRawStorageTransaction(payload)
+        return this.createRawStorageTransaction(
+          createPayload({ extensions }),
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+        )
       },
-      async extendEntitiesAndWaitForReceipt(extensions: GolemBaseExtend[]): Promise<TransactionReceipt> {
+
+      async extendEntitiesAndWaitForReceipt(
+        extensions: GolemBaseExtend[],
+        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+      ): Promise<TransactionReceipt> {
         const receipt = await client.waitForTransactionReceipt({
-          hash: await this.extendEntities(extensions)
+          hash: await this.extendEntities(
+            extensions, maxFeePerGas, maxPriorityFeePerGas,
+          )
         })
         return receipt
       },
