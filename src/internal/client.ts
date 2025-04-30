@@ -46,7 +46,7 @@ export { checksumAddress, toHex, TransactionReceipt }
 export const storageAddress = '0x0000000000000000000000000000000060138453'
 
 type GolemGetStorageValueInputParams = Hex
-export type GolemGetStorageValueReturnType = string
+type GolemGetStorageValueReturnType = string
 type GolemGetStorageValueSchema = {
   Method: 'golembase_getStorageValue'
   Parameters: [GolemGetStorageValueInputParams]
@@ -54,7 +54,7 @@ type GolemGetStorageValueSchema = {
 }
 
 type GolemGetEntityMetaDataInputParams = Hex
-export type GolemGetEntityMetaDataReturnType = EntityMetaData
+type GolemGetEntityMetaDataReturnType = EntityMetaData
 type GolemGetEntityMetaDataSchema = {
   Method: 'golembase_getEntityMetaData'
   Parameters: [GolemGetEntityMetaDataInputParams]
@@ -62,21 +62,21 @@ type GolemGetEntityMetaDataSchema = {
 }
 
 type GolemGetEntitiesToExpireAtBlockInputParams = number
-export type GolemGetEntitiesToExpireAtBlockReturnType = Hex[]
+type GolemGetEntitiesToExpireAtBlockReturnType = Hex[]
 type GolemGetEntitiesToExpireAtBlockSchema = {
   Method: 'golembase_getEntitiesToExpireAtBlock'
   Parameters: [GolemGetEntitiesToExpireAtBlockInputParams]
   ReturnType: GolemGetEntitiesToExpireAtBlockReturnType
 }
 
-export type GolemGetEntityCountReturnType = number
+type GolemGetEntityCountReturnType = number
 type GolemGetEntityCountSchema = {
   Method: 'golembase_getEntityCount'
   Parameters: []
   ReturnType: GolemGetEntityCountReturnType
 }
 
-export type GolemGetAllEntityKeysReturnType = Hex[]
+type GolemGetAllEntityKeysReturnType = Hex[]
 type GolemGetAllEntityKeysSchema = {
   Method: 'golembase_getAllEntityKeys'
   Parameters: []
@@ -84,7 +84,7 @@ type GolemGetAllEntityKeysSchema = {
 }
 
 type GolemGetEntitiesOfOwnerInputParams = Hex
-export type GolemGetEntitiesOfOwnerReturnType = Hex[]
+type GolemGetEntitiesOfOwnerReturnType = Hex[]
 type GolemGetEntitiesOfOwnerSchema = {
   Method: 'golembase_getEntitiesOfOwner'
   Parameters: [GolemGetEntitiesOfOwnerInputParams]
@@ -92,7 +92,7 @@ type GolemGetEntitiesOfOwnerSchema = {
 }
 
 type GolemQueryEntitiesInputParams = string
-export type GolemQueryEntitiesReturnType = { key: Hex, value: string }
+type GolemQueryEntitiesReturnType = { key: Hex, value: string }
 type GolemQueryEntitiesSchema = {
   Method: 'golembase_queryEntities'
   Parameters: [GolemQueryEntitiesInputParams]
@@ -445,16 +445,16 @@ export async function createClient(
       /**
        * Get the storage value associated with the given entity key
        */
-      async getStorageValue(args: GolemGetStorageValueInputParams): Promise<GolemGetStorageValueReturnType> {
-        return client.request<GolemGetStorageValueSchema>({
+      async getStorageValue(args: GolemGetStorageValueInputParams): Promise<Uint8Array> {
+        return Buffer.from(await client.request<GolemGetStorageValueSchema>({
           method: 'golembase_getStorageValue',
           params: [args]
-        })
+        }), "base64")
       },
       /**
        * Get the full entity information
        */
-      async getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<GolemGetEntityMetaDataReturnType> {
+      async getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<EntityMetaData> {
         return client.request<GolemGetEntityMetaDataSchema>({
           method: 'golembase_getEntityMetaData',
           params: [args]
@@ -463,7 +463,7 @@ export async function createClient(
       /**
        * Get all entity keys for entities that will expire at the given block number
        */
-      async getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<GolemGetEntitiesToExpireAtBlockReturnType> {
+      async getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]> {
         return client.request<GolemGetEntitiesToExpireAtBlockSchema>({
           method: 'golembase_getEntitiesToExpireAtBlock',
           // TODO: bigint gets serialised in json as a string, which the api doesn't accept.
@@ -471,29 +471,32 @@ export async function createClient(
           params: [Number(blockNumber)]
         })
       },
-      async getEntityCount(): Promise<GolemGetEntityCountReturnType> {
+      async getEntityCount(): Promise<number> {
         return client.request<GolemGetEntityCountSchema>({
           method: 'golembase_getEntityCount',
           params: []
         })
       },
-      async getAllEntityKeys(): Promise<GolemGetAllEntityKeysReturnType> {
+      async getAllEntityKeys(): Promise<Hex[]> {
         return await client.request<GolemGetAllEntityKeysSchema>({
           method: 'golembase_getAllEntityKeys',
           params: []
         })
       },
-      async getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<GolemGetEntitiesOfOwnerReturnType> {
+      async getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<Hex[]> {
         return client.request<GolemGetEntitiesOfOwnerSchema>({
           method: 'golembase_getEntitiesOfOwner',
           params: [args]
         })
       },
-      async queryEntities(args: GolemQueryEntitiesInputParams): Promise<[GolemQueryEntitiesReturnType]> {
-        return client.request<GolemQueryEntitiesSchema>({
+      async queryEntities(args: GolemQueryEntitiesInputParams): Promise<{ key: Hex, value: Uint8Array }[]> {
+        return (await client.request<GolemQueryEntitiesSchema>({
           method: 'golembase_queryEntities',
           params: [args]
-        })
+        })).map((res) => ({
+          key: res.key,
+          value: Buffer.from(res.value, "base64"),
+        }))
       },
     }))
   }

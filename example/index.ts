@@ -15,6 +15,9 @@ import { formatEther } from "viem";
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 
+const encoder = new TextEncoder()
+const decoder = new TextDecoder()
+
 const log = new Logger<ILogObj>({
   type: "pretty",
   minLevel: 3,
@@ -64,19 +67,19 @@ async function main() {
 
   const creates: GolemBaseCreate[] = [
     {
-      data: "foo",
+      data: encoder.encode("foo"),
       ttl: 25,
       stringAnnotations: [new Annotation("key", "foo")],
       numericAnnotations: [new Annotation("ix", 1)]
     },
     {
-      data: "bar",
+      data: encoder.encode("bar"),
       ttl: 2,
       stringAnnotations: [new Annotation("key", "bar")],
       numericAnnotations: [new Annotation("ix", 2)]
     },
     {
-      data: "qux",
+      data: encoder.encode("qux"),
       ttl: 50,
       stringAnnotations: [new Annotation("key", "qux")],
       numericAnnotations: [new Annotation("ix", 2)]
@@ -105,14 +108,14 @@ async function main() {
     "The third entity before the update:",
     await client.getEntityMetaData(receipts[2].entityKey),
     "\nStorage value:",
-    Buffer.from(await client.getStorageValue(receipts[2].entityKey), 'base64').toString('binary')
+    decoder.decode(await client.getStorageValue(receipts[2].entityKey)),
   )
 
   log.info("Updating the entity...")
   await client.updateEntities([{
     entityKey: receipts[2].entityKey,
     ttl: 40,
-    data: "foobar",
+    data: encoder.encode("foobar"),
     stringAnnotations: [new Annotation("key", "qux"), new Annotation("foo", "bar")],
     numericAnnotations: [new Annotation("ix", 2)]
   }])
@@ -121,7 +124,7 @@ async function main() {
     "The third entity after the update:",
     await client.getEntityMetaData(receipts[2].entityKey),
     "\nStorage value:",
-    Buffer.from(await client.getStorageValue(receipts[2].entityKey), 'base64').toString('binary')
+    decoder.decode(await client.getStorageValue(receipts[2].entityKey)),
   )
 
   log.info("Number of entities owned:", await numOfEntitiesOwned())
@@ -136,7 +139,7 @@ async function main() {
     "The third entity before the extension:",
     await client.getEntityMetaData(receipts[2].entityKey),
     "\nStorage value:",
-    Buffer.from(await client.getStorageValue(receipts[2].entityKey), 'base64').toString('binary')
+    decoder.decode(await client.getStorageValue(receipts[2].entityKey)),
   )
 
   log.info("Extending the TTL of the entity...")
@@ -149,7 +152,7 @@ async function main() {
     "The third entity after the extension:",
     await client.getEntityMetaData(receipts[2].entityKey),
     "\nStorage value:",
-    Buffer.from(await client.getStorageValue(receipts[2].entityKey), 'base64').toString('binary')
+    decoder.decode(await client.getStorageValue(receipts[2].entityKey)),
   )
 
   log.info("Number of entities owned:", await numOfEntitiesOwned())

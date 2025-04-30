@@ -18,6 +18,7 @@ import {
   Tagged,
 } from "../index.ts"
 import {
+  generateRandomBytes,
   generateRandomString,
 } from "./utils.ts"
 
@@ -46,7 +47,7 @@ describe("the golem-base client", () => {
     expect(client).to.exist
   })
 
-  const data = generateRandomString(32)
+  const data = generateRandomBytes(32)
   const stringAnnotation = generateRandomString(32)
 
   async function numOfEntitiesOwned(client: GolemBaseClient): Promise<number> {
@@ -74,7 +75,7 @@ describe("the golem-base client", () => {
 
   it("should be able to create entities", async () => {
     const receipt = await client.createEntities([{
-      data: generateRandomString(32),
+      data: generateRandomBytes(32),
       ttl: 25,
       stringAnnotations: [new Annotation("key", generateRandomString(32))],
       numericAnnotations: [new Annotation("ix", 1)]
@@ -131,7 +132,7 @@ describe("the golem-base client", () => {
     const entities = await client.queryEntities(`key = "${stringAnnotation}"`)
     expect(entities).to.eql([{
       entityKey: entityKey,
-      storageValue: Buffer.from(data, 'binary').toString('base64'),
+      storageValue: data,
     }])
   })
 
@@ -139,7 +140,7 @@ describe("the golem-base client", () => {
     const entities = await client.queryEntities(`ix = 2`)
     expect(entities).to.eql([{
       entityKey: entityKey,
-      storageValue: Buffer.from(data, 'binary').toString('base64'),
+      storageValue: data,
     }])
   })
 
@@ -147,13 +148,13 @@ describe("the golem-base client", () => {
     const entities = await client.queryEntities(`key = "${stringAnnotation}" && ix = 2`)
     expect(entities).to.eql([{
       entityKey: entityKey,
-      storageValue: Buffer.from(data, 'binary').toString('base64'),
+      storageValue: data,
     }])
   })
 
   it("should be able to retrieve the stored value", async () => {
     const value = await client.getStorageValue(entityKey)
-    expect(value).to.eql(Buffer.from(data, 'binary').toString('base64'))
+    expect(value).to.eql(data)
   })
 
   it("should be able to retrieve the entity metadata", async () => {
@@ -175,7 +176,7 @@ describe("the golem-base client", () => {
   })
 
   it("should be able to update entities", async () => {
-    const newData = generateRandomString(32)
+    const newData = generateRandomBytes(32)
     const newStringAnnotation = generateRandomString(32)
     const [result] = (await client.updateEntities([{
       entityKey,

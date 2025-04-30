@@ -15,7 +15,11 @@ export default [{
   plugins: [
     resolve(),
     commonjs(),
-    nodePolyfills(),
+    nodePolyfills({
+      sourceMap: true,
+      // using null here polyfills all files, including our own source files
+      include: null,
+    }),
     minify()
   ],
 }];

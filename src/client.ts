@@ -51,7 +51,7 @@ export interface GolemBaseClient {
    *
    * @returns The base64-encoded value stored in the entity
    */
-  getStorageValue(key: Hex): Promise<string>
+  getStorageValue(key: Hex): Promise<Uint8Array>
 
   /**
    * Query entities in GolemBase based on annotations
@@ -60,7 +60,7 @@ export interface GolemBaseClient {
    *
    * @returns Array of the entities that matched the query
    */
-  queryEntities(query: string): Promise<{ entityKey: Hex, storageValue: string }[]>
+  queryEntities(query: string): Promise<{ entityKey: Hex, storageValue: Uint8Array }[]>
 
   /**
    * Get all entity keys for entities that will expire at the given block number
@@ -207,7 +207,7 @@ export async function createClient(
       return client
     },
 
-    async getStorageValue(key: Hex): Promise<string> {
+    async getStorageValue(key: Hex): Promise<Uint8Array> {
       return client.httpClient.getStorageValue(key)
     },
 
@@ -235,7 +235,7 @@ export async function createClient(
       return client.httpClient.getEntitiesOfOwner(address)
     },
 
-    async queryEntities(query: string): Promise<{ entityKey: Hex, storageValue: string }[]> {
+    async queryEntities(query: string): Promise<{ entityKey: Hex, storageValue: Uint8Array }[]> {
       return (await client.httpClient.queryEntities(query)).map(res => ({
         entityKey: res.key,
         storageValue: res.value,

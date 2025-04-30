@@ -27,7 +27,7 @@ export class Tagged<Tag, Data> {
 }
 
 export type AccountData =
-  Tagged<"privatekey", Buffer> |
+  Tagged<"privatekey", Uint8Array> |
   Tagged<"ethereumprovider", { request(...args: any): Promise<any> }>
 
 /**
@@ -39,7 +39,7 @@ export type Hex = `0x${string}`
  * Type representing a create transaction in GolemBase
  */
 export type GolemBaseCreate = {
-  readonly data: string,
+  readonly data: Uint8Array,
   readonly ttl: number,
   readonly stringAnnotations: StringAnnotation[]
   readonly numericAnnotations: NumericAnnotation[],
@@ -49,7 +49,7 @@ export type GolemBaseCreate = {
  */
 export type GolemBaseUpdate = {
   readonly entityKey: Hex,
-  readonly data: string,
+  readonly data: Uint8Array,
   readonly ttl: number,
   readonly stringAnnotations: StringAnnotation[]
   readonly numericAnnotations: NumericAnnotation[],

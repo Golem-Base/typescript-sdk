@@ -69,7 +69,7 @@
               })))
 
               const [receipt] = await client.createEntities([{
-                data: "foo",
+                data: utf8Encode.encode("foo"),
                 ttl: 25,
                 stringAnnotations: [new golem_base_sdk.Annotation("key", "foo")],
                 numericAnnotations: [new golem_base_sdk.Annotation("ix", 1)]
@@ -80,7 +80,12 @@
               log.info("Entity count:", await client.getEntityCount())
               log.info("Created entity:", receipt.entityKey)
 
-              log.info("Entities found by query:", await client.getEntitiesForStringAnnotationValue("key", "foo"))
+              log.info("Entities found by query:",
+                (await client.queryEntities('key = "foo"')).map((res) => ({
+                  entityKey: res.entityKey,
+                  storageValue: utf8Decode.decode(res.storageValue),
+                }))
+              )
 
               await client.deleteEntities([receipt.entityKey])
 
