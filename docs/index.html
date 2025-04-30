@@ -1,4 +1,4 @@
-<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>golem-base-sdk</title><meta name="description" content="Documentation for golem-base-sdk"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="index.html" class="title">golem-base-sdk</a><div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><h1>golem-base-sdk</h1></div><div class="tsd-panel tsd-typography"><h1 id="🚀-golem-base" class="tsd-anchor-link">🚀 Golem Base<a href="#🚀-golem-base" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1><p>This is part of the <a href="https://github.com/Golem-Base">Golem Base</a> project, which is a Layer2 Network deployed on Ethereum, acting as a gateway to various Layer 3 Database Chains (DB-Chains).</p>
+<!DOCTYPE html><html class="default" lang="en" data-base="./"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>golem-base-sdk</title><meta name="description" content="Documentation for golem-base-sdk"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script defer src="assets/main.js"></script><script async src="assets/icons.js" id="tsd-icons-script"></script><script async src="assets/search.js" id="tsd-search-script"></script><script async src="assets/navigation.js" id="tsd-nav-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="index.html" class="title">golem-base-sdk</a><div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><h1>golem-base-sdk</h1></div><div class="tsd-panel tsd-typography"><h1 id="🚀-golem-base" class="tsd-anchor-link">🚀 Golem Base<a href="#🚀-golem-base" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h1><p>This is part of the <a href="https://github.com/Golem-Base">Golem Base</a> project, which is which is designed as a Layer2 Network deployed on Ethereum, acting as a gateway to various Layer 3 Database Chains (DB-Chains).</p>
 <blockquote>
 <p><strong>For an overview of Golem Base, check out our <a href="https://golem-base.io/wp-content/uploads/2025/03/GolemBase-Litepaper.pdf">Litepaper</a>.</strong></p>
 </blockquote>
@@ -15,7 +15,13 @@
 </li>
 </ol>
 <p>(Note: As an alternative to installing the demo CLI, you can build the <a href="https://github.com/Golem-Base/golembase-op-geth/blob/main/cmd/golembase/README.md">actual CLI</a> as it's included in the golembase-op-geth repo.)</p>
-<p>When you create a user, it will generate a private key file called private.key and store it in your ~/.config/golembase/ folder on Linux, ~/Library/Application Support/golembase/ on MacOS, and %LOCALAPPDATA%\golembase\ on Windows. (This is a standard folder as per <a href="https://specifications.freedesktop.org/basedir-spec/latest/">XDG</a>.)</p>
+<p>When you create a user, it will generate a private key file called <code>private.key</code> and store it in:</p>
+<ul>
+<li><code>~/.config/golembase/</code> on <strong>Linux</strong></li>
+<li><code>~/Library/Application Support/golembase/</code> on <strong>macOS</strong></li>
+<li><code>%LOCALAPPDATA%\golembase</code> on <strong>Windows</strong></li>
+</ul>
+<p>(This is a standard folder as per the <a href="https://specifications.freedesktop.org/basedir-spec/latest/">XDG specification</a>.)</p>
 <p>You will also need to fund the account. You can do so by typing:</p>
 <pre><code><span class="hl-0">golembase</span><span class="hl-1">-</span><span class="hl-0">demo</span><span class="hl-1">-</span><span class="hl-0">cli</span><span class="hl-1"> </span><span class="hl-0">account</span><span class="hl-1"> </span><span class="hl-0">fund</span><span class="hl-1"> </span><span class="hl-2">10</span>
 </code><button>Copy</button></pre>
@@ -44,36 +50,36 @@
 <pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-6">&quot;compilerOptions&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;target&quot;</span><span class="hl-1">: </span><span class="hl-4">&quot;ES2020&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;module&quot;</span><span class="hl-1">: </span><span class="hl-4">&quot;ESNext&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;moduleResolution&quot;</span><span class="hl-1">: </span><span class="hl-4">&quot;Node&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;strict&quot;</span><span class="hl-1">: </span><span class="hl-5">true</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;esModuleInterop&quot;</span><span class="hl-1">: </span><span class="hl-5">true</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;outDir&quot;</span><span class="hl-1">: </span><span class="hl-4">&quot;dist&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-6">&quot;rootDir&quot;</span><span class="hl-1">: </span><span class="hl-4">&quot;src&quot;</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-6">&quot;include&quot;</span><span class="hl-1">: [</span><span class="hl-4">&quot;src&quot;</span><span class="hl-1">]</span><br/><span class="hl-1">}</span>
 </code><button type="button">Copy</button></pre>
 
-<p>Finally, create a folder called src, where you'll put the index.ts file as described next.</p>
+<p>Finally, create a folder called <code>src</code>, where you'll put the <code>index.ts</code> file as described next.</p>
 <pre><code><span class="hl-0">golem</span><span class="hl-1">-</span><span class="hl-0">sdk</span><span class="hl-1">-</span><span class="hl-0">practice</span><span class="hl-1">/</span><br/><span class="hl-1">├──</span><span class="hl-0">src</span><br/><span class="hl-1">    ├── </span><span class="hl-0">index</span><span class="hl-1">.</span><span class="hl-0">ts</span><span class="hl-1"> </span>
 </code><button>Copy</button></pre>
 
-<h2 id="🧱-base-code" class="tsd-anchor-link">🧱 Base Code<a href="#🧱-base-code" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>You can find some <a href="https://github.com/Golem-Base/typescript-sdk/tree/main/example">base starter code here</a>; copy the index.ts into your own src folder.</p>
+<h2 id="🧱-base-code" class="tsd-anchor-link">🧱 Base Code<a href="#🧱-base-code" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>You can find some <a href="https://github.com/Golem-Base/typescript-sdk/tree/main/example">base starter code here</a>; copy the <code>index.ts</code> into your own <code>src</code> folder.</p>
 <p>This is a basic TypeScript application that:</p>
 <ol>
 <li>
 <p>Imports several items from the SDK (called &quot;golem-base-sdk-ts&quot;) including:</p>
 <ul>
-<li>createClient: A function that creates a client to interact with GolemBase</li>
-<li>type GolemBaseClient: A type that represents the base client for interacting with Golem</li>
-<li>type GolemBaseCreate: A type representing a create transaction in GolemBase</li>
-<li>Annotation: A type representing an annotation with a key and a value, used for efficient lookups</li>
+<li><code>createClient</code>: A function that creates a client to interact with GolemBase</li>
+<li><code>type GolemBaseClient</code>: A type that represents the base client for interacting with Golem</li>
+<li><code>type GolemBaseCreate</code>: A type representing a create transaction in GolemBase</li>
+<li><code>Annotation</code>: A type representing an annotation with a key and a value, used for efficient lookups</li>
 </ul>
 </li>
 <li>
-<p>Reads the private key, which it locates through the xdg-portable module.</p>
+<p>Reads the private key, which it locates through the <code>xdg-portable</code> module.</p>
 </li>
 <li>
-<p>Create a logger using the tslog TypeScript Logger</p>
+<p>Create a logger using the <code>tslog</code> TypeScript Logger</p>
 </li>
 <li>
-<p>The main follows, which is where the bulk of the demo code lives.</p>
+<p>The <code>main</code> follows, which is where the bulk of the demo code lives.</p>
 </li>
 </ol>
-<p>The main function demonstrates how to create, modify, and delete entities:</p>
+<p>The <code>main</code> function demonstrates how to create, modify, and delete entities:</p>
 <ol>
 <li>
-<p>Creates a client object that connects to the local Geth installation. You supply it two URLs, one http and one ws. You also supply it the data read in from the private key, as well as a reference to the logger.</p>
+<p>Creates a client object that connects to the local Geth installation. You supply it two URLs, one <code>http</code> and one <code>ws</code>. You also supply it the data read in from the private key, as well as a reference to the logger.</p>
 </li>
 <li>
 <p>The code then does some initial housekeeping, including subscribing to logging events.</p>
@@ -81,14 +87,14 @@
 <li>
 <p>Next it creates three demo entities:</p>
 <ul>
-<li>One with data &quot;foo&quot; and a time to live of 25 and a numeric annotation of 1</li>
-<li>One with data &quot;bar&quot; and a time to live of 2, and a numeric annotation of 2</li>
-<li>One with data &quot;qux&quot; and a time to live of 50, and a numeric annotation also of 2</li>
+<li>One with data <code>&quot;foo&quot;</code> and a time to live of <code>25</code> and a numeric annotation of <code>1</code></li>
+<li>One with data <code>&quot;bar&quot;</code> and a time to live of <code>2</code>, and a numeric annotation of <code>2</code></li>
+<li>One with data <code>&quot;qux&quot;</code> and a time to live of <code>50</code>, and a numeric annotation also of <code>2</code></li>
 </ul>
 <p>Notice that the type of each is GolemBaseCreate.</p>
 </li>
 <li>
-<p>It then calls client.createEntities to create the entities within Golem. Notice that this returns a promise of an array of items, each of which contain an entityKey and an expirationBlock.</p>
+<p>It then calls client.createEntities to create the entities within Golem. Notice that this returns a promise of an array of items, each of which contain an <code>entityKey</code> and an <code>expirationBlock</code>.</p>
 </li>
 <li>
 <p>Next, it prints out various information about the current state.</p>
@@ -96,12 +102,12 @@
 <li>
 <p>It then makes some modifications:</p>
 <ul>
-<li>It deletes the first entity by calling client.deleteEntities, passing in an array of one element, the first entityKey.</li>
-<li>It modifies the third entity by calling client.updateEntities, passing in the modified data</li>
+<li>It deletes the first entity by calling <code>client.deleteEntities</code>, passing in an array of one element, the first <code>entityKey</code>.</li>
+<li>It modifies the third entity by calling <code>client.updateEntities</code>, passing in the modified data</li>
 </ul>
 </li>
 <li>
-<p>And finally it deletes all the entities. Note that this code demonstrates how to query the entities; it then retrieves the entities, and uses the JavaScript map function to build a list of entityKeys to delete.</p>
+<p>And finally it deletes all the entities. Note that this code demonstrates how to query the entities; it then retrieves the entities, and uses the JavaScript <code>map</code> function to build a list of <code>entityKeys</code> to delete.</p>
 </li>
 </ol>
 <h2 id="🏃♂️-building-and-running" class="tsd-anchor-link">🏃‍♂️ Building and Running<a href="#🏃♂️-building-and-running" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2><p>To build your app, type:</p>
