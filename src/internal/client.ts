@@ -39,9 +39,7 @@ import {
   type GolemBaseTransaction,
   type EntityMetaData,
   type GolemBaseExtend,
-  StringAnnotation,
-  NumericAnnotation,
-  AccountData,
+  type AccountData,
 } from "../.."
 import { SmartAccount } from 'viem/_types/account-abstraction/accounts/types';
 
@@ -71,22 +69,6 @@ type GolemGetEntitiesToExpireAtBlockSchema = {
   Method: 'golembase_getEntitiesToExpireAtBlock'
   Parameters: [GolemGetEntitiesToExpireAtBlockInputParams]
   ReturnType: GolemGetEntitiesToExpireAtBlockReturnType
-}
-
-type GolemGetEntitiesForStringAnnotationValueInputParams = [string, string]
-export type GolemGetEntitiesForStringAnnotationValueReturnType = Hex[]
-type GolemGetEntitiesForStringAnnotationValueSchema = {
-  Method: 'golembase_getEntitiesForStringAnnotationValue'
-  Parameters: GolemGetEntitiesForStringAnnotationValueInputParams
-  ReturnType: GolemGetEntitiesForStringAnnotationValueReturnType
-}
-
-type GolemGetEntitiesForNumericAnnotationValueInputParams = [string, number]
-export type GolemGetEntitiesForNumericAnnotationValueReturnType = Hex[]
-type GolemGetEntitiesForNumericAnnotationValueSchema = {
-  Method: 'golembase_getEntitiesForNumericAnnotationValue'
-  Parameters: GolemGetEntitiesForNumericAnnotationValueInputParams
-  ReturnType: GolemGetEntitiesForNumericAnnotationValueReturnType
 }
 
 export type GolemGetEntityCountReturnType = number
@@ -400,20 +382,6 @@ export async function createClient(
           // TODO: bigint gets serialised in json as a string, which the api doesn't accept.
           // is there a better workaround?
           params: [Number(blockNumber)]
-        })
-        return res || []
-      },
-      async getEntitiesForStringAnnotationValue(annotation: StringAnnotation): Promise<GolemGetEntitiesForStringAnnotationValueReturnType> {
-        const res = await client.request<GolemGetEntitiesForStringAnnotationValueSchema>({
-          method: 'golembase_getEntitiesForStringAnnotationValue',
-          params: [annotation.key, annotation.value]
-        })
-        return res || []
-      },
-      async getEntitiesForNumericAnnotationValue(annotation: NumericAnnotation): Promise<GolemGetEntitiesForNumericAnnotationValueReturnType> {
-        const res = await client.request<GolemGetEntitiesForNumericAnnotationValueSchema>({
-          method: 'golembase_getEntitiesForNumericAnnotationValue',
-          params: [annotation.key, annotation.value]
         })
         return res || []
       },

@@ -127,16 +127,6 @@ describe("the golem-base client", () => {
     expect(allEntityKeys).to.include(entityKey, "expected entity not in DB")
   })
 
-  it("should be able to retrieve entities based on string annotations", async () => {
-    const entities = await client.getEntitiesForStringAnnotationValue("key", stringAnnotation)
-    expect(entities).to.eql([entityKey])
-  })
-
-  it("should be able to retrieve entities based on numeric annotations", async () => {
-    const entities = await client.getEntitiesForNumericAnnotationValue("ix", 2)
-    expect(entities).to.eql([entityKey])
-  })
-
   it("should be able to query entities based on string annotations", async () => {
     const entities = await client.queryEntities(`key = "${stringAnnotation}"`)
     expect(entities).to.eql([{

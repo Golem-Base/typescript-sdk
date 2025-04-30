@@ -63,26 +63,6 @@ export interface GolemBaseClient {
   queryEntities(query: string): Promise<{ entityKey: Hex, storageValue: string }[]>
 
   /**
-   * Get all entities with a given string annotation
-   *
-   * @param key - The annotation key
-   * @param value - The annotation value
-   *
-   * @returns An array of entity keys containing entities with the given annotation
-   */
-  getEntitiesForStringAnnotationValue(key: string, value: string): Promise<Hex[]>
-
-  /**
-   * Get all entities with a given numeric annotation
-   *
-   * @param key - The annotation key
-   * @param value - The annotation value
-   *
-   * @returns An array of entity keys containing entities with the given annotation
-   */
-  getEntitiesForNumericAnnotationValue(key: string, value: number): Promise<Hex[]>
-
-  /**
    * Get all entity keys for entities that will expire at the given block number
    *
    * @param blockNumber - The block number
@@ -241,14 +221,6 @@ export async function createClient(
 
     async getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]> {
       return client.httpClient.getEntitiesToExpireAtBlock(blockNumber)
-    },
-
-    async getEntitiesForStringAnnotationValue(key: string, value: string): Promise<Hex[]> {
-      return client.httpClient.getEntitiesForStringAnnotationValue({ key, value })
-    },
-
-    async getEntitiesForNumericAnnotationValue(key: string, value: number): Promise<Hex[]> {
-      return client.httpClient.getEntitiesForNumericAnnotationValue({ key, value })
     },
 
     async getEntityCount(): Promise<number> {
