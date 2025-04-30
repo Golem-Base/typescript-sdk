@@ -181,10 +181,10 @@ function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirat
 
 /**
  * Create a client to interact with GolemBase
- * @param key - Private key for this client
+ * @param accountData - Either a private key or a wallet provider for the user's account
  * @param rpcUrl - JSON-RPC URL to talk to
  * @param wsUrl - WebSocket URL to talk to
- * @param log - Optional logger instance to use for logging
+ * @param logger - Optional logger instance to use for logging
  *
  * @returns A client object
  */

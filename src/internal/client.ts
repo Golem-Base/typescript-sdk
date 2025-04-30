@@ -204,10 +204,10 @@ export type GolemBaseClient<
 
 /**
  * Create a client to interact with GolemBase
- * @param {Buffer} key - Private key for this client
- * @param {string} rpcUrl - JSON-RPC URL to talk to
- * @param {string} wsUrl - WebSocket URL to talk to
- * @param {Logger<ILogObj>} log - Optional logger instance to use for logging
+ * @param accountData - Either a private key or a wallet provider for the user's account
+ * @param rpcUrl - JSON-RPC URL to talk to
+ * @param wsUrl - WebSocket URL to talk to
+ * @param logger - Optional logger instance to use for logging
  *
  * @returns A client object
  */
