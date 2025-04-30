@@ -3,6 +3,10 @@
 <head>
     <title>GolemBase in the browser</title>
     <script src="https://unpkg.com/golem-base-sdk/dist/golem-base-sdk.min.js"></script>
+    <!--
+      We cannot re-export this from our bundle since we need the browser version
+      which is slightly different.
+    -->
     <script src="https://unpkg.com/tslog/dist/browser/index.js"></script>
 </head>
 <body>
@@ -13,7 +17,10 @@
         minLevel: 2,
       })
 
-      log.info("Waiting for a metamask provider...")
+      const utf8Encode = new TextEncoder();
+      const utf8Decode = new TextDecoder();
+
+      log.info("Registering event handler for a metamask provider...")
       window.addEventListener(
         "eip6963:announceProvider",
         (event) => { // EIP6963AnnounceProviderEvent
@@ -75,11 +82,6 @@
                 blockTag: "latest"
               })))
 
-              log.info("Account balance (metamask, literal):", Number(await client.getRawClient().walletClient.getBalance({
-                address: "0x75ae6C361940cE1be3f425F777b2d0a66434852e",
-                blockTag: "latest"
-              })))
-
               const [receipt] = await client.createEntities([{
                 data: utf8Encode.encode("foo"),
                 ttl: 25,
@@ -111,11 +113,16 @@
             }
           })();
         }
-      )
+      );
 
-      // Notify event listeners and other parts of the dapp that a provider is requested.
-      log.info("Dispatching events...")
-      window.dispatchEvent(new Event("eip6963:requestProvider"))
+      if (window.location.protocol === "file:") {
+        log.warn("This website is being loaded from a local file, the wallet integration is unlikely to work!")
+      }
+      (new Promise((resolve) => setTimeout(resolve, 500))).then(() => {
+        // Notify event listeners and other parts of the dapp that a provider is requested.
+        log.info("Requesting a provider...")
+        window.dispatchEvent(new Event("eip6963:requestProvider"))
+      })
     </script>
 </body>
 </html>

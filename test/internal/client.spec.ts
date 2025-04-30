@@ -74,7 +74,6 @@ describe("the internal golem-base client", () => {
       log)
 
     expect(client).to.exist
-    client.walletClient.getBalance()
   })
 
   it("should delete all our entities", async () => {
