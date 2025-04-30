@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@types/node':
-        specifier: ^22.14.1
-        version: 22.14.1
+        specifier: ^22.15.3
+        version: 22.15.3
       golem-base-sdk-ts:
         specifier: link:..
         version: link:..
@@ -23,8 +23,8 @@ importers:
 
 packages:
 
-  '@types/node@22.14.1':
-    resolution: {integrity: sha512-u0HuPQwe/dHrItgHHpmw3N2fYCR6x4ivMNbPHRkBVP4CvN+kiRrKHWk3i8tXiO/joPwXLMYvF9TTF0eqgHIuOw==}
+  '@types/node@22.15.3':
+    resolution: {integrity: sha512-lX7HFZeHf4QG/J7tBZqrCAXwz9J5RD56Y6MpP0eJkka8p+K0RY/yBTW7CYFJ4VGCclxqOLKmiGP5juQc6MKgcw==}
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -48,7 +48,7 @@ packages:
 
 snapshots:
 
-  '@types/node@22.14.1':
+  '@types/node@22.15.3':
     dependencies:
       undici-types: 6.21.0
 
