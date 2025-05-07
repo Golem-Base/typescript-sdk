@@ -13,6 +13,12 @@
   "files": [
     "./dist"
   ],
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    }
+  },
   "keywords": [],
   "author": "",
   "license": "GPL-3.0-only",
