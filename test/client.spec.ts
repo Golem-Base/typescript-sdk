@@ -16,7 +16,7 @@ import {
   type GolemBaseCreate,
   Annotation,
   Tagged,
-} from "../index.ts"
+} from "../src/index.ts"
 import {
   generateRandomBytes,
   generateRandomString,

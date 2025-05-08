@@ -11,7 +11,7 @@ import {
   type GolemBaseExtend,
   type EntityMetaData,
   type AccountData,
-} from ".."
+} from "."
 
 export interface GolemBaseClient {
   /**

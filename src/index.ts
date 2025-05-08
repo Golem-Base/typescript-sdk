@@ -1,5 +1,5 @@
-export * from "./src/client"
-export * as internal from "./src/internal/client"
+export * from "./client"
+export * as internal from "./internal/client"
 
 /**
  * Type representing an annotation with a key and a value, used for efficient lookups

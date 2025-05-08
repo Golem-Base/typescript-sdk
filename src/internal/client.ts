@@ -38,7 +38,7 @@ import {
   type EntityMetaData,
   type GolemBaseExtend,
   type AccountData,
-} from "../.."
+} from ".."
 import { SmartAccount } from 'viem/_types/account-abstraction/accounts/types';
 
 export { checksumAddress, toHex, TransactionReceipt }
