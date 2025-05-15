@@ -61,7 +61,7 @@ And now add the golem TypeScript SDK to your package by typing:
 npm i golem-base-sdk
 ```
 
-Now update your package.json file, changing the `type` member to `"type": "module",` and adding the two script lines for `build` and `start`. (You can leave the `name` member set to whatever it is. And the order of the members doesn't matter.)
+Now update your package.json file, changing the `type` member to `"type": "module",` and adding the two script lines for `build` and `start`. (Be sure to add a comma after the first script line called test. Also, you can leave the `name` member set to whatever it is. And the order of the members doesn't matter.)
 
 ```json
 {

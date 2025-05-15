@@ -10,7 +10,7 @@ import {
   type GolemBaseCreate,
   Annotation,
   Tagged,
-} from "golem-base-sdk-ts"
+} from "golem-base-sdk"
 import { formatEther } from "viem";
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
