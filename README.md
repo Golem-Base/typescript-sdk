@@ -61,13 +61,13 @@ And now add the golem TypeScript SDK to your package by typing:
 npm i golem-base-sdk
 ```
 
-Now update your package.json file, adding the `"type": "module",` line and the two script lines for build and start:
+Now update your package.json file, changing the `type` member to `"type": "module",` and adding the two script lines for `build` and `start`. (Be sure to add a comma after the first script line called test. Also, you can leave the `name` member set to whatever it is. And the order of the members doesn't matter.)
 
 ```json
 {
-  "name": "mytypescript2",
+  "name": "myapp",
   "version": "1.0.0",
-  "type": "module",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -77,15 +77,15 @@ Now update your package.json file, adding the `"type": "module",` line and the t
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "type": "module",
   "devDependencies": {
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "golem-base-sdk": "^0.1.3",
-    "xdg-portable": "^10.6.0"
+    "golem-base-sdk": "^0.1.8"
   }
 }
+
 ```
 
 And next, create a file called tsconfig.json, and add the following to it:
