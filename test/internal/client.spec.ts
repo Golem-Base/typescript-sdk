@@ -14,7 +14,7 @@ import {
   type Hex,
   Annotation,
   Tagged,
-} from "../../index.ts"
+} from "../../src/index.ts"
 import {
   generateRandomBytes,
   generateRandomString,
@@ -42,7 +42,7 @@ async function deleteAllEntitiesWithIndex(client: internal.GolemBaseClient, inde
   const queryResult = await client.httpClient.queryEntities(`ix = ${index}`)
   log.debug("deleteEntitiesWithIndex, queryResult", queryResult)
   return Promise.all(
-    queryResult.map(async (res: internal.GolemQueryEntitiesReturnType) => {
+    queryResult.map(async (res: { key: Hex }) => {
       log.debug("Deleting entity with key", res.key)
       return await client.walletClient.deleteEntitiesAndWaitForReceipt([res.key])
     })

@@ -48,6 +48,6 @@
     "clean": "rm -rf ./dist",
     "build": "rm -rf ./dist && rollup -c",
     "test": "ts-mocha --recursive --extension .spec.ts ./test",
-    "typedoc": "./node_modules/typedoc/bin/typedoc ./index.ts"
+    "typedoc": "./node_modules/typedoc/bin/typedoc ./src/index.ts"
   }
 }
