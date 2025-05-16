@@ -170,6 +170,7 @@ function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirat
   //                   1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111
   // to obtain 0x143
   // and then shift the original number to the right by 256 to obtain 0x12f
+  // NOTE: the BigInt constructor assumes big-endian byte order
   const dataParsed = BigInt(data)
   const newExpirationBlock = dataParsed & ((1n << 256n) - 1n)
   const oldExpirationBlock = dataParsed >> 256n
