@@ -212,6 +212,7 @@ export type GolemBaseClient<
  * @returns A client object
  */
 export async function createClient(
+  chainId: number,
   accountData: AccountData,
   rpcUrl: string,
   wsUrl: string,
@@ -257,7 +258,7 @@ export async function createClient(
   }
 
   const chain = defineChain({
-    id: 1337,
+    id: chainId,
     name: "golem-base",
     nativeCurrency: {
       decimals: 18,

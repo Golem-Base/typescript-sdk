@@ -182,6 +182,7 @@ function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirat
 
 /**
  * Create a client to interact with GolemBase
+ * @param chainId - The ID of the chain you are connecting to
  * @param accountData - Either a private key or a wallet provider for the user's account
  * @param rpcUrl - JSON-RPC URL to talk to
  * @param wsUrl - WebSocket URL to talk to
@@ -190,6 +191,7 @@ function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirat
  * @returns A client object
  */
 export async function createClient(
+  chainId: number,
   accountData: AccountData,
   rpcUrl: string,
   wsUrl: string,
@@ -201,7 +203,7 @@ export async function createClient(
 
   const log = logger.getSubLogger({ name: "client" });
 
-  const client = await internal.createClient(accountData, rpcUrl, wsUrl, log)
+  const client = await internal.createClient(chainId, accountData, rpcUrl, wsUrl, log)
 
   return {
     getRawClient() {

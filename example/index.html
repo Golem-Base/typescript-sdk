@@ -43,6 +43,7 @@
 
             try {
               const client = await golem_base_sdk.createClient(
+                1337,
                 new golem_base_sdk.Tagged("ethereumprovider", wallet.provider),
                 'https://api.golembase.demo.golem-base.io',
                 'wss://ws-api.golembase.demo.golem-base.io',

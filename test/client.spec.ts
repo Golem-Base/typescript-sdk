@@ -37,6 +37,7 @@ let client: GolemBaseClient
 describe("the golem-base client", () => {
   it("can be created", async () => {
     client = await createClient(
+      1337,
       new Tagged("privatekey", keyBytes),
       //'http://localhost:8545',
       //'ws://localhost:8546',

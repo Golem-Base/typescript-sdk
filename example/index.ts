@@ -25,6 +25,7 @@ const log = new Logger<ILogObj>({
 
 async function main() {
   const client: GolemBaseClient = await createClient(
+    1337,
     new Tagged("privatekey", keyBytes),
     //'http://localhost:8545',
     //'ws://localhost:8546',

@@ -66,6 +66,7 @@ let expirationBlock: number
 describe("the internal golem-base client", () => {
   it("can be created", async () => {
     client = await internal.createClient(
+      1337,
       new Tagged("privatekey", keyBytes),
       //'http://localhost:8545',
       //'ws://localhost:8546',
