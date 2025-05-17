@@ -11,7 +11,37 @@ import {
   type GolemBaseExtend,
   type EntityMetaData,
   type AccountData,
+  golemBaseABI,
+  golemBaseStorageEntityCreatedSignature,
+  golemBaseStorageEntityBTLExtendedSignature,
+  golemBaseStorageEntityDeletedSignature,
+  golemBaseStorageEntityUpdatedSignature,
 } from "."
+import {
+  decodeEventLog,
+  Log,
+  toHex
+} from "viem";
+
+export type CreateEntityReceipt = {
+  entityKey: Hex,
+  expirationBlock: number,
+}
+
+export type UpdateEntityReceipt = {
+  entityKey: Hex,
+  expirationBlock: number,
+}
+
+export type DeleteEntityReceipt = {
+  entityKey: Hex
+}
+
+export type ExtendEntityReceipt = {
+  entityKey: Hex,
+  oldExpirationBlock: number,
+  newExpirationBlock: number,
+}
 
 export interface GolemBaseClient {
   /**
@@ -80,6 +110,18 @@ export interface GolemBaseClient {
    */
   getEntityMetaData(key: Hex): Promise<EntityMetaData>
 
+  sendTransaction(
+    creates?: GolemBaseCreate[],
+    updates?: GolemBaseUpdate[],
+    deletes?: Hex[],
+    extensions?: GolemBaseExtend[]
+  ): Promise<{
+    createEntitiesReceipts: CreateEntityReceipt[],
+    updateEntitiesReceipts: UpdateEntityReceipt[],
+    deleteEntitiesReceipts: DeleteEntityReceipt[],
+    extendEntitiesReceipts: ExtendEntityReceipt[],
+  }>
+
   /**
    * Create one or more new entities in GolemBase
    *
@@ -88,12 +130,7 @@ export interface GolemBaseClient {
    * @return An array of the entity keys of the entities that were created,
    *         together with the number of the block at which they will expire
    */
-  createEntities(creates: GolemBaseCreate[]): Promise<
-    {
-      entityKey: Hex,
-      expirationBlock: number,
-    }[]
-  >
+  createEntities(creates: GolemBaseCreate[]): Promise<CreateEntityReceipt[]>
 
   /**
    * Update one or more new entities in GolemBase
@@ -103,12 +140,7 @@ export interface GolemBaseClient {
    * @return An array of the entity keys of the entities that were updated,
    *         together with the number of the block at which they will expire
    */
-  updateEntities(updates: GolemBaseUpdate[]): Promise<
-    {
-      entityKey: Hex,
-      expirationBlock: number,
-    }[]
-  >
+  updateEntities(updates: GolemBaseUpdate[]): Promise<UpdateEntityReceipt[]>
 
   /**
    * Delete one or more new entities in GolemBase
@@ -117,22 +149,18 @@ export interface GolemBaseClient {
    *
    * @return An array of the entity keys of the entities that were deleted
    */
-  deleteEntities(deletes: Hex[]): Promise<{ entityKey: Hex }[]>
+  deleteEntities(deletes: Hex[]): Promise<DeleteEntityReceipt[]>
 
   /**
-   * Extend the TTL of one or more new entities in GolemBase
+   * Extend the BTL of one or more new entities in GolemBase
    *
-   * @param extensions - The entities to extend the TTL of
+   * @param extensions - The entities to extend the BTL of
    *
-   * @return An array of the entity keys of the entities that had their TTL extended,
+   * @return An array of the entity keys of the entities that had their BTL extended,
    *         together with the numbers of the old and the new block at which the
    *         entities expire
    */
-  extendEntities(extensions: GolemBaseExtend[]): Promise<{
-    entityKey: Hex,
-    oldExpirationBlock: bigint,
-    newExpirationBlock: bigint,
-  }[]>
+  extendEntities(extensions: GolemBaseExtend[]): Promise<ExtendEntityReceipt[]>
 
   /**
    * Install callbacks that will be invoked for every GolemBase transaction
@@ -140,7 +168,7 @@ export interface GolemBaseClient {
    * @param args.fromBlock - The starting block, events trigger the callbacks starting from this block
    * @param args.onCreated - A callback that's invoked whenever entities are created
    * @param args.onUpdated - A callback that's invoked whenever entitier are updated
-   * @param args.onExtended - A callback that's invoked whenever entities have their TTL extended
+   * @param args.onExtended - A callback that's invoked whenever entities have their BTL extended
    * @param args.onDeleted - A callback that's invoked whenever entities are deleted
    * @param args.onError - A callback that's invoked whenever there is an error during the processing
    * @param args.pollingInterval - In that case of HTTP transport, the polling interval in milliseconds.
@@ -153,31 +181,12 @@ export interface GolemBaseClient {
     fromBlock: bigint,
     onCreated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
     onUpdated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
-    onExtended: (args: { entityKey: Hex, oldExpirationBlock: bigint, newExpirationBlock: bigint, }) => void,
+    onExtended: (args: { entityKey: Hex, oldExpirationBlock: number, newExpirationBlock: number, }) => void,
     onDeleted: (args: { entityKey: Hex, }) => void,
     onError?: ((error: Error) => void) | undefined,
     pollingInterval?: number,
     transport?: `http` | `websocket`
   }): () => void
-}
-
-function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirationBlock: bigint, } {
-  // Take the first 64 bytes by masking the rest (shift 1 to the left 256 positions, then negate the number)
-  // Example:
-  // 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 012f
-  //    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0143
-  // mask this with 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-  //                   1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111
-  // to obtain 0x143
-  // and then shift the original number to the right by 256 to obtain 0x12f
-  // NOTE: the BigInt constructor assumes big-endian byte order
-  const dataParsed = BigInt(data)
-  const newExpirationBlock = dataParsed & ((1n << 256n) - 1n)
-  const oldExpirationBlock = dataParsed >> 256n
-  return {
-    oldExpirationBlock,
-    newExpirationBlock,
-  }
 }
 
 /**
@@ -204,6 +213,78 @@ export async function createClient(
   const log = logger.getSubLogger({ name: "client" });
 
   const client = await internal.createClient(chainId, accountData, rpcUrl, wsUrl, log)
+
+  log.info(
+    "Calculated the following event signatures:",
+    "create",
+    golemBaseStorageEntityCreatedSignature,
+    "update",
+    golemBaseStorageEntityUpdatedSignature,
+    "delete",
+    golemBaseStorageEntityDeletedSignature,
+    "extend",
+    golemBaseStorageEntityBTLExtendedSignature,
+  )
+
+  function parseTransactionLogs(logs: Log<bigint, number, false>[]): {
+    createEntitiesReceipts: CreateEntityReceipt[],
+    updateEntitiesReceipts: UpdateEntityReceipt[],
+    deleteEntitiesReceipts: DeleteEntityReceipt[],
+    extendEntitiesReceipts: ExtendEntityReceipt[],
+  } {
+    return logs.reduce((receipts, txlog) => {
+      const parsed = decodeEventLog({
+        abi: golemBaseABI,
+        data: txlog.data,
+        topics: txlog.topics
+      })
+      switch (parsed.eventName) {
+        case "GolemBaseStorageEntityCreated": {
+          return {
+            ...receipts,
+            createEntitiesReceipts: receipts.createEntitiesReceipts.concat([{
+              entityKey: toHex(parsed.args.entityKey),
+              expirationBlock: Number(parsed.args.expirationBlock),
+            }]),
+          }
+        }
+        case "GolemBaseStorageEntityUpdated": {
+          return {
+            ...receipts,
+            updateEntitiesReceipts: receipts.updateEntitiesReceipts.concat([{
+              entityKey: toHex(parsed.args.entityKey),
+              expirationBlock: Number(parsed.args.expirationBlock),
+            }]),
+          }
+        }
+        case "GolemBaseStorageEntityBTLExtended": {
+          return {
+            ...receipts,
+            extendEntitiesReceipts: receipts.extendEntitiesReceipts.concat([{
+              entityKey: toHex(parsed.args.entityKey),
+              newExpirationBlock: Number(parsed.args.newExpirationBlock),
+              oldExpirationBlock: Number(parsed.args.oldExpirationBlock),
+            }]),
+          }
+        }
+        case "GolemBaseStorageEntityDeleted": {
+          return {
+            ...receipts,
+            deleteEntitiesReceipts: receipts.deleteEntitiesReceipts.concat([{
+              entityKey: toHex(parsed.args.entityKey),
+            }]),
+          }
+        }
+      }
+    },
+      {
+        createEntitiesReceipts: [] as CreateEntityReceipt[],
+        updateEntitiesReceipts: [] as UpdateEntityReceipt[],
+        deleteEntitiesReceipts: [] as DeleteEntityReceipt[],
+        extendEntitiesReceipts: [] as ExtendEntityReceipt[],
+      }
+    )
+  }
 
   return {
     getRawClient() {
@@ -245,64 +326,71 @@ export async function createClient(
       }))
     },
 
-    async createEntities(creates: GolemBaseCreate[]): Promise<
-      {
-        expirationBlock: number,
-        entityKey: Hex,
-      }[]
-    > {
-      const receipt = await client.walletClient.createEntitiesAndWaitForReceipt(creates)
+    async sendTransaction(
+      creates: GolemBaseCreate[] = [],
+      updates: GolemBaseUpdate[] = [],
+      deletes: Hex[] = [],
+      extensions: GolemBaseExtend[] = [],
+    ): Promise<{
+      createEntitiesReceipts: CreateEntityReceipt[],
+      updateEntitiesReceipts: UpdateEntityReceipt[],
+      deleteEntitiesReceipts: DeleteEntityReceipt[],
+      extendEntitiesReceipts: ExtendEntityReceipt[],
+    }> {
+      const receipt = await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt(
+        creates, updates, deletes, extensions
+      )
       log.debug("Got receipt:", receipt)
-      return receipt.logs.map(txlog => ({
-        expirationBlock: parseInt(txlog.data),
-        entityKey: txlog.topics[1] as Hex
-      }))
+      return parseTransactionLogs(receipt.logs)
     },
 
-    async updateEntities(updates: GolemBaseUpdate[]): Promise<
-      {
-        expirationBlock: number,
-        entityKey: Hex,
-      }[]
-    > {
-      const receipt = await client.walletClient.updateEntitiesAndWaitForReceipt(updates)
-      log.debug("Got receipt:", receipt)
-      return receipt.logs.map(txlog => ({
-        expirationBlock: parseInt(txlog.data),
-        entityKey: txlog.topics[1] as Hex
-      }))
+    async createEntities(
+      this: GolemBaseClient,
+      creates: GolemBaseCreate[]
+    ): Promise<CreateEntityReceipt[]> {
+      return (await this.sendTransaction(
+        creates
+      )).createEntitiesReceipts
     },
 
-    async deleteEntities(deletes: Hex[]): Promise<{ entityKey: Hex }[]> {
-      const receipt = await client.walletClient.deleteEntitiesAndWaitForReceipt(deletes)
-      log.debug("Got receipt:", receipt)
-      return receipt.logs.map(txlog => ({
-        entityKey: txlog.topics[1] as Hex
-      }))
+    async updateEntities(
+      this: GolemBaseClient,
+      updates: GolemBaseUpdate[]
+    ): Promise<UpdateEntityReceipt[]> {
+      return (await this.sendTransaction(
+        [],
+        updates
+      )).updateEntitiesReceipts
     },
 
-    async extendEntities(extensions: GolemBaseExtend[]): Promise<{
-      oldExpirationBlock: bigint,
-      newExpirationBlock: bigint,
-      entityKey: Hex
-    }[]> {
-      const receipt = await client.walletClient.extendEntitiesAndWaitForReceipt(extensions)
-      log.debug("Got receipt:", receipt)
-      return receipt.logs.map(txlog => {
-        const { oldExpirationBlock, newExpirationBlock, } = parseExtendTTLData(txlog.data)
-        return {
-          oldExpirationBlock,
-          newExpirationBlock,
-          entityKey: txlog.topics[1] as Hex,
-        }
-      })
+    async deleteEntities(
+      this: GolemBaseClient,
+      deletes: Hex[]
+    ): Promise<DeleteEntityReceipt[]> {
+      return (await this.sendTransaction(
+        [],
+        [],
+        deletes,
+      )).deleteEntitiesReceipts
+    },
+
+    async extendEntities(
+      this: GolemBaseClient,
+      extensions: GolemBaseExtend[]
+    ): Promise<ExtendEntityReceipt[]> {
+      return (await this.sendTransaction(
+        [],
+        [],
+        [],
+        extensions,
+      )).extendEntitiesReceipts
     },
 
     watchLogs(args: {
       fromBlock: bigint,
       onCreated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
       onUpdated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
-      onExtended: (args: { entityKey: Hex, oldExpirationBlock: bigint, newExpirationBlock: bigint, }) => void,
+      onExtended: (args: { entityKey: Hex, oldExpirationBlock: number, newExpirationBlock: number, }) => void,
       onDeleted: (args: { entityKey: Hex, }) => void,
       onError?: (error: Error) => void,
       pollingInterval?: number,
@@ -318,47 +406,20 @@ export async function createClient(
       const unsubscribe = c.watchEvent({
         address: internal.storageAddress,
         fromBlock: args.fromBlock,
+        events: golemBaseABI,
         onLogs: logs => {
           log.debug("watchLogs, got logs: ", logs)
-          logs.forEach(l => {
-            switch (l.topics[0]) {
-              case "0xce4b4ad6891d716d0b1fba2b4aeb05ec20edadb01df512263d0dde423736bbb9": {
-                // Create
-                const entityKey = l.topics[1]
-                const expirationBlock = parseInt(l.data)
-                if (entityKey && expirationBlock) {
-                  args.onCreated({ entityKey, expirationBlock, })
-                }
-                break
-              }
-              case "0xf371f40aa6932ad9dacbee236e5f3b93d478afe3934b5cfec5ea0d800a41d165": {
-                // Update
-                const entityKey = l.topics[1]
-                const expirationBlock = parseInt(l.data)
-                if (entityKey && expirationBlock) {
-                  args.onUpdated({ entityKey, expirationBlock, })
-                }
-                break
-              }
-              case "0x49f78ff301f2020db26cdf781a7e801d1015e0b851fe4117c7740837ed6724e9": {
-                // Extend
-                const entityKey = l.topics[1]
-                const { oldExpirationBlock, newExpirationBlock, } = parseExtendTTLData(l.data)
-                if (entityKey) {
-                  args.onExtended({ entityKey, oldExpirationBlock, newExpirationBlock, })
-                }
-                break
-              }
-              case "0x0297b0e6eaf1bc2289906a8123b8ff5b19e568a60d002d47df44f8294422af93": {
-                // Delete
-                const entityKey = l.topics[1]
-                if (entityKey) {
-                  args.onDeleted({ entityKey, })
-                }
-                break
-              }
-            }
-          })
+          const {
+            createEntitiesReceipts,
+            updateEntitiesReceipts,
+            deleteEntitiesReceipts,
+            extendEntitiesReceipts,
+          } = parseTransactionLogs(logs)
+
+          createEntitiesReceipts.forEach(args.onCreated)
+          updateEntitiesReceipts.forEach(args.onUpdated)
+          deleteEntitiesReceipts.forEach(args.onDeleted)
+          extendEntitiesReceipts.forEach(args.onExtended)
         },
         onError: args.onError,
         pollingInterval: args.pollingInterval,

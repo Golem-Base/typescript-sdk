@@ -1,5 +1,30 @@
+import {
+  getAbiItem,
+  parseAbi,
+  toEventHash,
+} from "viem"
+
 export * from "./client"
 export * as internal from "./internal/client"
+
+// The Golem Base ABI
+export const golemBaseABI = parseAbi([
+  "event GolemBaseStorageEntityCreated(uint256 indexed entityKey, uint256 expirationBlock)",
+  "event GolemBaseStorageEntityUpdated(uint256 indexed entityKey, uint256 expirationBlock)",
+  "event GolemBaseStorageEntityDeleted(uint256 indexed entityKey)",
+  "event GolemBaseStorageEntityBTLExtended(uint256 indexed entityKey, uint256 oldExpirationBlock, uint256 newExpirationBlock)",
+])
+
+// Golem Base event signatures
+export const golemBaseStorageEntityCreatedSignature =
+  toEventHash(getAbiItem({ abi: golemBaseABI, name: "GolemBaseStorageEntityCreated" }))
+export const golemBaseStorageEntityUpdatedSignature =
+  toEventHash(getAbiItem({ abi: golemBaseABI, name: "GolemBaseStorageEntityUpdated" }))
+export const golemBaseStorageEntityDeletedSignature =
+  toEventHash(getAbiItem({ abi: golemBaseABI, name: "GolemBaseStorageEntityDeleted" }))
+export const golemBaseStorageEntityBTLExtendedSignature =
+  toEventHash(getAbiItem({ abi: golemBaseABI, name: "GolemBaseStorageEntityBTLExtended" }))
+
 
 /**
  * Type representing an annotation with a key and a value, used for efficient lookups
@@ -40,7 +65,7 @@ export type Hex = `0x${string}`
  */
 export type GolemBaseCreate = {
   readonly data: Uint8Array,
-  readonly ttl: number,
+  readonly btl: number,
   readonly stringAnnotations: StringAnnotation[]
   readonly numericAnnotations: NumericAnnotation[],
 }
@@ -50,7 +75,7 @@ export type GolemBaseCreate = {
 export type GolemBaseUpdate = {
   readonly entityKey: Hex,
   readonly data: Uint8Array,
-  readonly ttl: number,
+  readonly btl: number,
   readonly stringAnnotations: StringAnnotation[]
   readonly numericAnnotations: NumericAnnotation[],
 }

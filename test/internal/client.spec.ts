@@ -14,6 +14,7 @@ import {
   type Hex,
   Annotation,
   Tagged,
+  type AccountData,
 } from "../../src/index.ts"
 import {
   generateRandomBytes,
@@ -44,7 +45,11 @@ async function deleteAllEntitiesWithIndex(client: internal.GolemBaseClient, inde
   return Promise.all(
     queryResult.map(async (res: { key: Hex }) => {
       log.debug("Deleting entity with key", res.key)
-      return await client.walletClient.deleteEntitiesAndWaitForReceipt([res.key])
+      return await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt(
+        [],
+        [],
+        [res.key]
+      )
     })
   )
 }
@@ -65,20 +70,37 @@ let expirationBlock: number
 
 describe("the internal golem-base client", () => {
   it("can be created", async () => {
-    client = await internal.createClient(
-      1337,
-      new Tagged("privatekey", keyBytes),
-      //'http://localhost:8545',
-      //'ws://localhost:8546',
-      'https://api.golembase.demo.golem-base.io',
-      'wss://ws-api.golembase.demo.golem-base.io',
-      log)
+    const key: AccountData = new Tagged("privatekey", keyBytes)
+    client = {
+      local: await internal.createClient(
+        1337,
+        key,
+        'http://localhost:8545',
+        'ws://localhost:8546',
+        log),
+      demo: await internal.createClient(
+        1337,
+        key,
+        'https://api.golembase.demo.golem-base.io',
+        'wss://ws-api.golembase.demo.golem-base.io',
+        log),
+      kaolin: await internal.createClient(
+        600606,
+        key,
+        'https://rpc.kaolin.holesky.golem-base.io',
+        'wss://ws.rpc.kaolin.holesky.golem-base.io',
+      ),
+    }.local
 
     expect(client).to.exist
   })
 
   it("should delete all our entities", async () => {
-    await client.walletClient.deleteEntitiesAndWaitForReceipt(await getEntitiesOwned(client))
+    await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt(
+      [],
+      [],
+      await getEntitiesOwned(client)
+    )
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount)
   })
 
@@ -90,9 +112,9 @@ describe("the internal golem-base client", () => {
   })
 
   it("should be able to create entities", async () => {
-    const hash = await client.walletClient.createEntities([{
+    const hash = await client.walletClient.sendGolemBaseTransaction([{
       data: generateRandomBytes(32),
-      ttl: 25,
+      btl: 25,
       stringAnnotations: [new Annotation("key", generateRandomString(32))],
       numericAnnotations: [new Annotation("ix", 1)]
     }])
@@ -107,24 +129,24 @@ describe("the internal golem-base client", () => {
     const creates: GolemBaseCreate[] = [
       {
         data,
-        ttl: 25,
+        btl: 25,
         stringAnnotations: [new Annotation("key", stringAnnotation)],
         numericAnnotations: [new Annotation("ix", 2)]
       },
       {
         data,
-        ttl: 5,
+        btl: 5,
         stringAnnotations: [new Annotation("key", generateRandomString(32))],
         numericAnnotations: [new Annotation("ix", 3)]
       },
       {
         data,
-        ttl: 5,
+        btl: 5,
         stringAnnotations: [new Annotation("key", generateRandomString(32))],
         numericAnnotations: [new Annotation("ix", 3)]
       }
     ]
-    const receipts = await client.walletClient.createEntitiesAndWaitForReceipt(creates)
+    const receipts = await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt(creates)
     entitiesOwnedCount += creates.length;
     // Save this key for later
     [{ entityKey, expirationBlock }] = receipts.logs.map(txlog => ({
@@ -197,9 +219,9 @@ describe("the internal golem-base client", () => {
   it("should be able to update entities", async () => {
     const newData = generateRandomBytes(32)
     const newStringAnnotation = generateRandomString(32)
-    const result = await client.walletClient.updateEntitiesAndWaitForReceipt([{
+    const result = await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt([], [{
       entityKey,
-      ttl: 10,
+      btl: 10,
       data: newData,
       stringAnnotations: [new Annotation("key", newStringAnnotation)],
       numericAnnotations: [new Annotation("ix", 2)],
@@ -211,7 +233,7 @@ describe("the internal golem-base client", () => {
 
   it("should be able to extend entities", async () => {
     const numberOfBlocks = 20
-    const result = await client.walletClient.extendEntitiesAndWaitForReceipt([{
+    const result = await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt([], [], [], [{
       entityKey,
       numberOfBlocks,
     }])

@@ -119,46 +119,20 @@ export type GolemBaseWalletActions = {
     maxPriorityFeePerGas: bigint | undefined,
   ): Promise<Hex>
 
-  createEntities(
-    creates: GolemBaseCreate[],
+  sendGolemBaseTransaction(
+    creates?: GolemBaseCreate[],
+    updates?: GolemBaseUpdate[],
+    deletes?: Hex[],
+    extensions?: GolemBaseExtend[],
     maxFeePerGas?: bigint | undefined,
     maxPriorityFeePerGas?: bigint | undefined,
   ): Promise<Hex>
-  createEntitiesAndWaitForReceipt(
-    creates: GolemBaseCreate[],
-    maxFeePerGas?: bigint | undefined,
-    maxPriorityFeePerGas?: bigint | undefined,
-  ): Promise<TransactionReceipt>
 
-  updateEntities(
-    updates: GolemBaseUpdate[],
-    maxFeePerGas?: bigint | undefined,
-    maxPriorityFeePerGas?: bigint | undefined,
-  ): Promise<Hex>
-  updateEntitiesAndWaitForReceipt(
-    updates: GolemBaseUpdate[],
-    maxFeePerGas?: bigint | undefined,
-    maxPriorityFeePerGas?: bigint | undefined,
-  ): Promise<TransactionReceipt>
-
-  deleteEntities(
-    deletes: Hex[],
-    maxFeePerGas?: bigint | undefined,
-    maxPriorityFeePerGas?: bigint | undefined,
-  ): Promise<Hex>
-  deleteEntitiesAndWaitForReceipt(
-    deletes: Hex[],
-    maxFeePerGas?: bigint | undefined,
-    maxPriorityFeePerGas?: bigint | undefined,
-  ): Promise<TransactionReceipt>
-
-  extendEntities(
-    extensions: GolemBaseExtend[],
-    maxFeePerGas?: bigint | undefined,
-    maxPriorityFeePerGas?: bigint | undefined,
-  ): Promise<Hex>
-  extendEntitiesAndWaitForReceipt(
-    extensions: GolemBaseExtend[],
+  sendGolemBaseTransactionAndWaitForReceipt(
+    creates?: GolemBaseCreate[],
+    updates?: GolemBaseUpdate[],
+    deletes?: Hex[],
+    extensions?: GolemBaseExtend[],
     maxFeePerGas?: bigint | undefined,
     maxPriorityFeePerGas?: bigint | undefined,
   ): Promise<TransactionReceipt>
@@ -233,7 +207,7 @@ export async function createClient(
     const payload = [
       // Create
       (tx.creates || []).map(el => [
-        el.ttl,
+        el.btl,
         el.data,
         el.stringAnnotations.map(formatAnnotation),
         el.numericAnnotations.map(formatAnnotation),
@@ -241,7 +215,7 @@ export async function createClient(
       // Update
       (tx.updates || []).map(el => [
         el.entityKey,
-        el.ttl,
+        el.btl,
         el.data,
         el.stringAnnotations.map(formatAnnotation),
         el.numericAnnotations.map(formatAnnotation),
@@ -333,106 +307,36 @@ export async function createClient(
         return hash
       },
 
-      async createEntities(
-        creates: GolemBaseCreate[],
+      async sendGolemBaseTransaction(
+        creates: GolemBaseCreate[] = [],
+        updates: GolemBaseUpdate[] = [],
+        deletes: Hex[] = [],
+        extensions: GolemBaseExtend[] = [],
         maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
         maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
       ): Promise<Hex> {
         return this.createRawStorageTransaction(
-          createPayload({ creates }),
+          createPayload({ creates, updates, deletes, extensions }),
           maxFeePerGas,
           maxPriorityFeePerGas,
         )
       },
 
-      async createEntitiesAndWaitForReceipt(
-        creates: GolemBaseCreate[],
+      async sendGolemBaseTransactionAndWaitForReceipt(
+        creates: GolemBaseCreate[] = [],
+        updates: GolemBaseUpdate[] = [],
+        deletes: Hex[] = [],
+        extensions: GolemBaseExtend[] = [],
         maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
         maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
       ): Promise<TransactionReceipt> {
-        const receipt = await client.waitForTransactionReceipt({
-          hash: await this.createEntities(
-            creates, maxFeePerGas, maxPriorityFeePerGas
+        return client.waitForTransactionReceipt({
+          hash: await this.createRawStorageTransaction(
+            createPayload({ creates, updates, deletes, extensions }),
+            maxFeePerGas,
+            maxPriorityFeePerGas,
           )
         })
-        return receipt
-      },
-
-      async updateEntities(
-        updates: GolemBaseUpdate[],
-        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
-        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
-      ): Promise<Hex> {
-        return this.createRawStorageTransaction(
-          createPayload({ updates }),
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-        )
-      },
-
-      async updateEntitiesAndWaitForReceipt(
-        updates: GolemBaseUpdate[],
-        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
-        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
-      ): Promise<TransactionReceipt> {
-        const receipt = await client.waitForTransactionReceipt({
-          hash: await this.updateEntities(
-            updates, maxFeePerGas, maxPriorityFeePerGas,
-          )
-        })
-        return receipt
-      },
-
-      async deleteEntities(
-        deletes: Hex[],
-        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
-        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
-      ): Promise<Hex> {
-        log.debug("deleteEntities", deletes)
-        return this.createRawStorageTransaction(
-          createPayload({ deletes }),
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-        )
-      },
-
-      async deleteEntitiesAndWaitForReceipt(
-        deletes: Hex[],
-        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
-        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
-      ): Promise<TransactionReceipt> {
-        const receipt = await client.waitForTransactionReceipt({
-          hash: await this.deleteEntities(
-            deletes, maxFeePerGas, maxPriorityFeePerGas,
-          )
-        })
-        return receipt
-      },
-
-      async extendEntities(
-        extensions: GolemBaseExtend[],
-        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
-        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
-      ): Promise<Hex> {
-        log.debug("extendEntities", extensions)
-        return this.createRawStorageTransaction(
-          createPayload({ extensions }),
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-        )
-      },
-
-      async extendEntitiesAndWaitForReceipt(
-        extensions: GolemBaseExtend[],
-        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
-        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
-      ): Promise<TransactionReceipt> {
-        const receipt = await client.waitForTransactionReceipt({
-          hash: await this.extendEntities(
-            extensions, maxFeePerGas, maxPriorityFeePerGas,
-          )
-        })
-        return receipt
       },
     })),
     wsClient: createPublicClient({

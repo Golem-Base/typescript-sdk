@@ -85,7 +85,7 @@
 
               const [receipt] = await client.createEntities([{
                 data: utf8Encode.encode("foo"),
-                ttl: 25,
+                btl: 25,
                 stringAnnotations: [new golem_base_sdk.Annotation("key", "foo")],
                 numericAnnotations: [new golem_base_sdk.Annotation("ix", 1)]
               }])

@@ -16,6 +16,7 @@ import {
   type GolemBaseCreate,
   Annotation,
   Tagged,
+  type AccountData,
 } from "../src/index.ts"
 import {
   generateRandomBytes,
@@ -36,14 +37,27 @@ let client: GolemBaseClient
 
 describe("the golem-base client", () => {
   it("can be created", async () => {
-    client = await createClient(
-      1337,
-      new Tagged("privatekey", keyBytes),
-      //'http://localhost:8545',
-      //'ws://localhost:8546',
-      'https://api.golembase.demo.golem-base.io',
-      'wss://ws-api.golembase.demo.golem-base.io',
-      log)
+    const key: AccountData = new Tagged("privatekey", keyBytes)
+    client = {
+      local: await createClient(
+        1337,
+        key,
+        'http://localhost:8545',
+        'ws://localhost:8546',
+        log),
+      demo: await createClient(
+        1337,
+        key,
+        'https://api.golembase.demo.golem-base.io',
+        'wss://ws-api.golembase.demo.golem-base.io',
+        log),
+      kaolin: await createClient(
+        600606,
+        key,
+        'https://rpc.kaolin.holesky.golem-base.io',
+        'wss://ws.rpc.kaolin.holesky.golem-base.io',
+      ),
+    }.local
 
     expect(client).to.exist
   })
@@ -81,7 +95,7 @@ describe("the golem-base client", () => {
   it("should be able to create entities", async () => {
     const receipt = await client.createEntities([{
       data: generateRandomBytes(32),
-      ttl: 25,
+      btl: 25,
       stringAnnotations: [new Annotation("key", generateRandomString(32))],
       numericAnnotations: [new Annotation("ix", 1)]
     }])
@@ -95,19 +109,19 @@ describe("the golem-base client", () => {
     const creates: GolemBaseCreate[] = [
       {
         data,
-        ttl: 25,
+        btl: 25,
         stringAnnotations: [new Annotation("key", stringAnnotation)],
         numericAnnotations: [new Annotation("ix", 2)]
       },
       {
         data,
-        ttl: 5,
+        btl: 5,
         stringAnnotations: [new Annotation("key", generateRandomString(32))],
         numericAnnotations: [new Annotation("ix", 3)]
       },
       {
         data,
-        ttl: 5,
+        btl: 5,
         stringAnnotations: [new Annotation("key", generateRandomString(32))],
         numericAnnotations: [new Annotation("ix", 3)]
       }
@@ -183,13 +197,13 @@ describe("the golem-base client", () => {
   it("should be able to update entities", async () => {
     const newData = generateRandomBytes(32)
     const newStringAnnotation = generateRandomString(32)
-    const [result] = (await client.updateEntities([{
+    const [result] = await client.updateEntities([{
       entityKey,
-      ttl: 10,
+      btl: 10,
       data: newData,
       stringAnnotations: [new Annotation("key", newStringAnnotation)],
       numericAnnotations: [new Annotation("ix", 2)],
-    }]))
+    }])
     expect(result).to.exist
     log.debug(result)
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
@@ -197,14 +211,14 @@ describe("the golem-base client", () => {
 
   it("should be able to extend entities", async () => {
     const numberOfBlocks = 20
-    const [result] = (await client.extendEntities([{
+    const [result] = await client.extendEntities([{
       entityKey,
       numberOfBlocks,
-    }]))
+    }])
     expect(result).to.exist
     log.debug(`Extend result: ${JSON.stringify(result, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`)
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
-    expect(result.newExpirationBlock - result.oldExpirationBlock == BigInt(numberOfBlocks))
+    expect(result.newExpirationBlock - result.oldExpirationBlock == numberOfBlocks)
   })
 
   it("should be able to delete entities", async () => {
