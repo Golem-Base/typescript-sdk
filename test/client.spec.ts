@@ -134,6 +134,7 @@ describe("the golem-base client", () => {
     expiryBlock = receipts[0].expirationBlock
 
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount)
+    expect(expiryBlock).to.be.greaterThan(0)
   })
 
   it("should have the right amount of entities", async () => {

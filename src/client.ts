@@ -21,6 +21,7 @@ import {
   decodeEventLog,
   Log,
   pad,
+  toEventHash,
   toHex
 } from "viem";
 
@@ -215,17 +216,9 @@ export async function createClient(
 
   const client = await internal.createClient(chainId, accountData, rpcUrl, wsUrl, log)
 
-  log.debug(
-    "Calculated the following event signatures:",
-    "create",
-    golemBaseStorageEntityCreatedSignature,
-    "update",
-    golemBaseStorageEntityUpdatedSignature,
-    "delete",
-    golemBaseStorageEntityDeletedSignature,
-    "extend",
-    golemBaseStorageEntityBTLExtendedSignature,
-  )
+  for (let value of golemBaseABI) {
+    log.debug("Calculated the following event signature:", value.name, "->", toEventHash(value))
+  }
 
   function parseTransactionLogs(logs: Log<bigint, number, false>[]): {
     createEntitiesReceipts: CreateEntityReceipt[],
@@ -234,18 +227,28 @@ export async function createClient(
     extendEntitiesReceipts: ExtendEntityReceipt[],
   } {
     return logs.reduce((receipts, txlog) => {
+      // The call to pad here is needed when running in the browser, but somehow
+      // not when running in node...
+      // Our geth node seems to correctly return a uint256.
+      // We pad to either 32 or 64 bytes (the longest data field in our ABI).
+      // TODO: investigate why this is needed
+      let paddedData
+      if (txlog.data.length > 2 && txlog.data.length < 34) {
+        paddedData = pad(txlog.data, { size: 32, dir: "left" })
+      } else if (txlog.data.length > 34 && txlog.data.length < 66) {
+        paddedData = pad(txlog.data, { size: 64, dir: "left" })
+      } else {
+        paddedData = txlog.data
+      }
+      log.debug("padded data:", paddedData)
       const parsed = decodeEventLog({
         abi: golemBaseABI,
-        // The call to pad here is needed when running in the browser, but somehow
-        // not when running in node...
-        // Our geth node seems to correctly return a uint256.
-        // We pad to 64 bytes, which is the longest data field in our ABI.
-        // Maybe this is a bug in the implementation of some function in the browser?
-        data: pad(txlog.data, { size: 64 }),
+        data: paddedData,
         topics: txlog.topics
       })
       switch (parsed.eventName) {
         case "GolemBaseStorageEntityCreated": {
+          log.debug(parsed.args)
           return {
             ...receipts,
             createEntitiesReceipts: receipts.createEntitiesReceipts.concat([{
@@ -278,6 +281,38 @@ export async function createClient(
             ...receipts,
             deleteEntitiesReceipts: receipts.deleteEntitiesReceipts.concat([{
               entityKey: toHex(parsed.args.entityKey),
+            }]),
+          }
+        }
+        // Old ABI event that has a typo in the name and a missing non-indexed argument
+        case "GolemBaseStorageEntityBTLExptended":
+        // Old ABI before renme of TTL -> BTL
+        case "GolemBaseStorageEntityTTLExptended": {
+          // We need to manually parse the data in this case, since one argument is missing from the signature
+          function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirationBlock: bigint, } {
+            // Take the first 64 bytes by masking the rest (shift 1 to the left 256 positions, then negate the number)
+            // Example:
+            // 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 012f
+            //    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0143
+            // mask this with 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
+            //                   1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111
+            // to obtain 0x143
+            // and then shift the original number to the right by 256 to obtain 0x12f
+            const dataParsed = BigInt(data)
+            const newExpirationBlock = dataParsed & ((1n << 256n) - 1n)
+            const oldExpirationBlock = dataParsed >> 256n
+            return {
+              oldExpirationBlock,
+              newExpirationBlock,
+            }
+          }
+          const expirationBlocks = parseExtendTTLData(txlog.data)
+          return {
+            ...receipts,
+            extendEntitiesReceipts: receipts.extendEntitiesReceipts.concat([{
+              entityKey: toHex(parsed.args.entityKey),
+              newExpirationBlock: Number(expirationBlocks.newExpirationBlock),
+              oldExpirationBlock: Number(expirationBlocks.oldExpirationBlock),
             }]),
           }
         }
@@ -347,7 +382,9 @@ export async function createClient(
         creates, updates, deletes, extensions
       )
       log.debug("Got receipt:", receipt)
-      return parseTransactionLogs(receipt.logs)
+      const out = parseTransactionLogs(receipt.logs)
+      log.debug("parsed transaction log:", out)
+      return out
     },
 
     async createEntities(
