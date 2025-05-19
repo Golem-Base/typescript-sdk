@@ -22,9 +22,9 @@ The repo also contains an example application to showcase how you can use this S
 
 When you create a user, it will generate a private key file called `private.key` and store it in:
 
-- `~/.config/golembase/` on **Linux**  
-- `~/Library/Application Support/golembase/` on **macOS**  
-- `%LOCALAPPDATA%\golembase\` on **Windows**  
+- `~/.config/golembase/` on **Linux**
+- `~/Library/Application Support/golembase/` on **macOS**
+- `%LOCALAPPDATA%\golembase\` on **Windows**
 
 (This is a standard folder as per the [XDG specification](https://specifications.freedesktop.org/basedir-spec/latest/).)
 
@@ -110,7 +110,7 @@ Finally, create a folder called `src`, where you'll put the `index.ts` file as d
 ```
 golem-sdk-practice/
 ├──src
-    ├── index.ts 
+    ├── index.ts
 ```
 
 ## 🧱 Base Code
@@ -141,10 +141,10 @@ The `main` function demonstrates how to create, modify, and delete entities:
 3. Next it creates three demo entities:
 
     * One with data `"foo"` and a time to live of `25` and a numeric annotation of `1`
-	* One with data `"bar"` and a time to live of `2`, and a numeric annotation of `2`
-	* One with data `"qux"` and a time to live of `50`, and a numeric annotation also of `2`
+    * One with data `"bar"` and a time to live of `2`, and a numeric annotation of `2`
+    * One with data `"qux"` and a time to live of `50`, and a numeric annotation also of `2`
 
-	Notice that the type of each is GolemBaseCreate.
+    Notice that the type of each is GolemBaseCreate.
 
 4. It then calls client.createEntities to create the entities within Golem. Notice that this returns a promise of an array of items, each of which contain an `entityKey` and an `expirationBlock`.
 
@@ -153,7 +153,7 @@ The `main` function demonstrates how to create, modify, and delete entities:
 6. It then makes some modifications:
 
     * It deletes the first entity by calling `client.deleteEntities`, passing in an array of one element, the first `entityKey`.
-	* It modifies the third entity by calling `client.updateEntities`, passing in the modified data
+    * It modifies the third entity by calling `client.updateEntities`, passing in the modified data
 
 7. And finally it deletes all the entities. Note that this code demonstrates how to query the entities; it then retrieves the entities, and uses the JavaScript `map` function to build a list of `entityKeys` to delete.
 
