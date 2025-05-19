@@ -23,6 +23,17 @@ const log = new Logger<ILogObj>({
   minLevel: 3,
 })
 
+// Utility function to filter with async callbacks
+async function asyncFilter<T>(arr: T[], callback: (item: T) => Promise<boolean>): Promise<T[]> {
+  const results: T[] = [];
+  for (const item of arr) {
+    if (await callback(item)) {
+      results.push(item);
+    }
+  }
+  return results;
+};
+
 async function main() {
   const key: AccountData = new Tagged("privatekey", keyBytes)
   const client = {
@@ -31,13 +42,15 @@ async function main() {
       key,
       'http://localhost:8545',
       'ws://localhost:8546',
-      log),
+      log,
+    ),
     demo: await createClient(
       1337,
       key,
       'https://api.golembase.demo.golem-base.io',
       'wss://ws-api.golembase.demo.golem-base.io',
-      log),
+      log,
+    ),
     kaolin: await createClient(
       600606,
       key,
@@ -177,10 +190,18 @@ async function main() {
   log.info("*******************************")
   log.info("")
 
-  await client.deleteEntities(
-    (await client.queryEntities("ix = 1 || ix = 2 || ix = 3"))
-      .map(result => result.entityKey)
-  )
+  // Figure out whether we still need to delete anything
+  const toDelete = (await asyncFilter(
+    await client.queryEntities("ix = 1 || ix = 2 || ix = 3"),
+    async result => {
+      const metadata = await client.getEntityMetaData(result.entityKey)
+      return metadata.owner === await client.getOwnerAddress()
+    }
+  )).map(result => result.entityKey)
+
+  if (toDelete.length !== 0) {
+    await client.deleteEntities(toDelete)
+  }
 
   log.info("Number of entities owned:", await numOfEntitiesOwned())
 

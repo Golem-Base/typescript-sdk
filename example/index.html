@@ -73,12 +73,7 @@
 
               log.info("Owner address:", await client.getOwnerAddress())
 
-              log.info("Account balance (http):", Number(await client.getRawClient().httpClient.getBalance({
-                address: await client.getOwnerAddress(),
-                blockTag: "latest"
-              })))
-
-              log.info("Account balance (metamask):", Number(await client.getRawClient().walletClient.getBalance({
+              log.info("Account balance:", Number(await client.getRawClient().httpClient.getBalance({
                 address: await client.getOwnerAddress(),
                 blockTag: "latest"
               })))
@@ -94,6 +89,22 @@
 
               log.info("Entity count:", await numOfEntitiesOwned(client))
               log.info("Created entity:", receipt.entityKey)
+              log.info("Created entity:", await client.getEntityMetaData(receipt.entityKey))
+
+              const [updateReceipt] = await client.updateEntities([{
+                entityKey: receipt.entityKey,
+                data: utf8Encode.encode("bar"),
+                btl: 50,
+                stringAnnotations: [new golem_base_sdk.Annotation("key", "foobar")],
+                numericAnnotations: [new golem_base_sdk.Annotation("ix", 10)]
+              }])
+              log.info("Updated entity:", await client.getEntityMetaData(updateReceipt.entityKey))
+
+              const [extensionReceipt] = await client.extendEntities([{
+                entityKey: receipt.entityKey,
+                numberOfBlocks: 50,
+              }])
+              log.info("extended entity:", await client.getEntityMetaData(extensionReceipt.entityKey))
 
               log.info("Entities found by query:",
                 (await client.queryEntities('key = "foo"')).map((res) => ({
