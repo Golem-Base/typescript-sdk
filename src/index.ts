@@ -7,6 +7,8 @@ import {
 export * from "./client"
 export * as internal from "./internal/client"
 
+export { formatEther } from "viem"
+
 // The Golem Base ABI
 export const golemBaseABI = parseAbi([
   "event GolemBaseStorageEntityCreated(uint256 indexed entityKey, uint256 expirationBlock)",

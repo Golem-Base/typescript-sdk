@@ -6,14 +6,12 @@ import {
 import xdg from "xdg-portable"
 import {
   createClient,
+  formatEther,
   type GolemBaseCreate,
   Annotation,
   Tagged,
   type AccountData,
 } from "golem-base-sdk"
-import {
-  formatEther,
-} from "viem";
 
 const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
 
