@@ -19,12 +19,12 @@ import {
   createPublicClient,
   custom,
   CustomTransport,
+  toRlp,
 } from 'viem'
 import {
   privateKeyToAccount,
   nonceManager,
 } from 'viem/accounts'
-import RLP from '../rlp'
 import {
   type ILogObj,
   Logger,
@@ -199,36 +199,38 @@ export async function createClient(
   const log = logger.getSubLogger({ name: "internal" });
 
   function createPayload(tx: GolemBaseTransaction): Hex {
-    function formatAnnotation<T>(annotation: { key: string, value: T, }): [string, T] {
-      return [annotation.key, annotation.value]
+    function formatAnnotation<
+      T extends string | number | bigint | boolean
+    >(annotation: { key: string, value: T, }): [Hex, Hex] {
+      return [toHex(annotation.key), toHex(annotation.value)]
     }
 
     log.debug("Transaction:", JSON.stringify(tx, null, 2))
     const payload = [
       // Create
       (tx.creates || []).map(el => [
-        el.btl,
-        el.data,
+        toHex(el.btl),
+        toHex(el.data),
         el.stringAnnotations.map(formatAnnotation),
         el.numericAnnotations.map(formatAnnotation),
       ]),
       // Update
       (tx.updates || []).map(el => [
         el.entityKey,
-        el.btl,
-        el.data,
+        toHex(el.btl),
+        toHex(el.data),
         el.stringAnnotations.map(formatAnnotation),
         el.numericAnnotations.map(formatAnnotation),
       ]),
       // Delete
-      tx.deletes || [],
+      (tx.deletes || []),
       (tx.extensions || []).map(el => [
         el.entityKey,
-        el.numberOfBlocks,
+        toHex(el.numberOfBlocks),
       ]),
     ]
     log.debug("Payload before RLP encoding:", JSON.stringify(payload, null, 2))
-    return toHex(RLP.encode(payload))
+    return toRlp(payload)
   }
 
   const chain = defineChain({
