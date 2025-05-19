@@ -239,10 +239,9 @@ export async function createClient(
         // The call to pad here is needed when running in the browser, but somehow
         // not when running in node...
         // Our geth node seems to correctly return a uint256.
-        // There is a test in viem that tests the transaction receipt handling
-        // and asserts that the data field is 32 bytes, so probably this is a bug
-        // in the implementation of some function in the browser.
-        data: pad(txlog.data),
+        // We pad to 64 bytes, which is the longest data field in our ABI.
+        // Maybe this is a bug in the implementation of some function in the browser?
+        data: pad(txlog.data, { size: 64 }),
         topics: txlog.topics
       })
       switch (parsed.eventName) {
