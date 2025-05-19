@@ -45,6 +45,7 @@ async function main() {
       key,
       'https://rpc.kaolin.holesky.golem-base.io',
       'wss://ws.rpc.kaolin.holesky.golem-base.io',
+      log,
     ),
   }.kaolin
 
