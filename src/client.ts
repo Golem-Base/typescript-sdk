@@ -214,7 +214,7 @@ export async function createClient(
 
   const client = await internal.createClient(chainId, accountData, rpcUrl, wsUrl, log)
 
-  log.info(
+  log.debug(
     "Calculated the following event signatures:",
     "create",
     golemBaseStorageEntityCreatedSignature,
