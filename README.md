@@ -119,7 +119,7 @@ You can find some [base starter code here](https://github.com/Golem-Base/typescr
 
 This is a basic TypeScript application that:
 
-1. Imports several items from the SDK (called "golem-base-sdk-ts") including:
+1. Imports several items from the SDK (called "golem-base-sdk") including:
 
     * `createClient`: A function that creates a client to interact with GolemBase
     * `type GolemBaseClient`: A type that represents the base client for interacting with Golem

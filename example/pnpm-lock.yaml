@@ -11,7 +11,7 @@ importers:
       '@types/node':
         specifier: ^22.15.18
         version: 22.15.18
-      golem-base-sdk-ts:
+      golem-base-sdk:
         specifier: link:..
         version: link:..
       tslog:

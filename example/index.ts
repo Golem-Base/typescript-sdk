@@ -10,7 +10,7 @@ import {
   Annotation,
   Tagged,
   type AccountData,
-} from "golem-base-sdk-ts"
+} from "golem-base-sdk"
 import {
   formatEther,
 } from "viem";

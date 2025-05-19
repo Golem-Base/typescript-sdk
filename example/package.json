@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@types/node": "^22.15.18",
-    "golem-base-sdk-ts": "link:..",
+    "golem-base-sdk": "link:..",
     "tslog": "^4.9.3",
     "xdg-portable": "^10.6.0"
   }
