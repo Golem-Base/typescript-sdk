@@ -20,6 +20,7 @@ import {
 import {
   decodeEventLog,
   Log,
+  pad,
   toHex
 } from "viem";
 
@@ -235,7 +236,13 @@ export async function createClient(
     return logs.reduce((receipts, txlog) => {
       const parsed = decodeEventLog({
         abi: golemBaseABI,
-        data: txlog.data,
+        // The call to pad here is needed when running in the browser, but somehow
+        // not when running in node...
+        // Our geth node seems to correctly return a uint256.
+        // There is a test in viem that tests the transaction receipt handling
+        // and asserts that the data field is 32 bytes, so probably this is a bug
+        // in the implementation of some function in the browser.
+        data: pad(txlog.data),
         topics: txlog.topics
       })
       switch (parsed.eventName) {
