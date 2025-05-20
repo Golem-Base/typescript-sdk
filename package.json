@@ -25,8 +25,7 @@
   "dependencies": {
     "@types/node": "^22.15.19",
     "tslog": "^4.9.3",
-    "viem": "^2.30.0",
-    "xdg-portable": "^10.6.0"
+    "viem": "^2.30.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.3",
@@ -42,7 +41,8 @@
     "rollup-plugin-polyfill-node": "^0.13.0",
     "ts-mocha": "^11.1.0",
     "tslib": "^2.8.1",
-    "typedoc": "^0.28.4"
+    "typedoc": "^0.28.4",
+    "xdg-portable": "^10.6.0"
   },
   "scripts": {
     "clean": "rm -rf ./dist",

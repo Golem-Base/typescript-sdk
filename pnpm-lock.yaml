@@ -17,9 +17,6 @@ importers:
       viem:
         specifier: ^2.30.0
         version: 2.30.0(typescript@5.8.2)
-      xdg-portable:
-        specifier: ^10.6.0
-        version: 10.6.0
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^28.0.3
@@ -63,6 +60,9 @@ importers:
       typedoc:
         specifier: ^0.28.4
         version: 0.28.4(typescript@5.8.2)
+      xdg-portable:
+        specifier: ^10.6.0
+        version: 10.6.0
 
 packages:
 
