@@ -43,7 +43,7 @@ describe("the golem-base client", () => {
         1337,
         key,
         'http://localhost:8545',
-        'ws://localhost:8546',
+        'ws://localhost:8545',
         log),
       demo: await createClient(
         1337,
