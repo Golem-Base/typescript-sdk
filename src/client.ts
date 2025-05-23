@@ -12,10 +12,6 @@ import {
   type EntityMetaData,
   type AccountData,
   golemBaseABI,
-  golemBaseStorageEntityCreatedSignature,
-  golemBaseStorageEntityBTLExtendedSignature,
-  golemBaseStorageEntityDeletedSignature,
-  golemBaseStorageEntityUpdatedSignature,
 } from "."
 import {
   decodeEventLog,
@@ -79,7 +75,7 @@ export interface GolemBaseClient {
   /**
    * Get the storage value associated with the given entity key
    *
-   * @param {Hex} key - The key of the entity to look up
+   * @param key - The key of the entity to look up
    *
    * @returns The base64-encoded value stored in the entity
    */
@@ -106,17 +102,31 @@ export interface GolemBaseClient {
   /**
    * Get entity metadata
    *
-   * @param {Hex} key - The key of the entity to look up
+   * @param key - The key of the entity to look up
    *
    * @returns The entity's metadata
    */
   getEntityMetaData(key: Hex): Promise<EntityMetaData>
 
+  /**
+   * @param creates - The list of create operations to include in this transaction
+   * @param updates - The list of update operations to include in this transaction
+   * @param deletes - The list of delete operations to include in this transaction
+   * @param extensions - The list of extend operations to include in this transaction
+   * @param args.txHashCallback - Callback to invoke with the transaction hash of the transaction
+   * @param args.maxFeePerGas - Sets the max fee per gas manually
+   * @param args.maxPriorityFeePerGas - Sets the max priority fee per gas manually
+   */
   sendTransaction(
     creates?: GolemBaseCreate[],
     updates?: GolemBaseUpdate[],
     deletes?: Hex[],
-    extensions?: GolemBaseExtend[]
+    extensions?: GolemBaseExtend[],
+    args?: {
+      txHashCallback?: (txHash: Hex) => void
+      maxFeePerGas?: bigint | undefined,
+      maxPriorityFeePerGas?: bigint | undefined,
+    },
   ): Promise<{
     createEntitiesReceipts: CreateEntityReceipt[],
     updateEntitiesReceipts: UpdateEntityReceipt[],
@@ -128,41 +138,73 @@ export interface GolemBaseClient {
    * Create one or more new entities in GolemBase
    *
    * @param creates - The entities to create
+   * @param args - Optional parameters, see {@link sendTransaction}
    *
    * @return An array of the entity keys of the entities that were created,
    *         together with the number of the block at which they will expire
    */
-  createEntities(creates: GolemBaseCreate[]): Promise<CreateEntityReceipt[]>
+  createEntities(
+    creates: GolemBaseCreate[],
+    args?: {
+      txHashCallback?: (txHash: Hex) => void
+      maxFeePerGas?: bigint | undefined,
+      maxPriorityFeePerGas?: bigint | undefined,
+    },
+  ): Promise<CreateEntityReceipt[]>
 
   /**
    * Update one or more new entities in GolemBase
    *
    * @param updates - The entities to update
+   * @param args - Optional parameters, see {@link sendTransaction}
    *
    * @return An array of the entity keys of the entities that were updated,
    *         together with the number of the block at which they will expire
    */
-  updateEntities(updates: GolemBaseUpdate[]): Promise<UpdateEntityReceipt[]>
+  updateEntities(
+    updates: GolemBaseUpdate[],
+    args?: {
+      txHashCallback?: (txHash: Hex) => void
+      maxFeePerGas?: bigint | undefined,
+      maxPriorityFeePerGas?: bigint | undefined,
+    },
+  ): Promise<UpdateEntityReceipt[]>
 
   /**
    * Delete one or more new entities in GolemBase
    *
    * @param deletes - The entity keys of the entities to delete
+   * @param args - Optional parameters, see {@link sendTransaction}
    *
    * @return An array of the entity keys of the entities that were deleted
    */
-  deleteEntities(deletes: Hex[]): Promise<DeleteEntityReceipt[]>
+  deleteEntities(
+    deletes: Hex[],
+    args?: {
+      txHashCallback?: (txHash: Hex) => void
+      maxFeePerGas?: bigint | undefined,
+      maxPriorityFeePerGas?: bigint | undefined,
+    },
+  ): Promise<DeleteEntityReceipt[]>
 
   /**
    * Extend the BTL of one or more new entities in GolemBase
    *
    * @param extensions - The entities to extend the BTL of
+   * @param args - Optional parameters, see {@link sendTransaction}
    *
    * @return An array of the entity keys of the entities that had their BTL extended,
    *         together with the numbers of the old and the new block at which the
    *         entities expire
    */
-  extendEntities(extensions: GolemBaseExtend[]): Promise<ExtendEntityReceipt[]>
+  extendEntities(
+    extensions: GolemBaseExtend[],
+    args?: {
+      txHashCallback?: (txHash: Hex) => void
+      maxFeePerGas?: bigint | undefined,
+      maxPriorityFeePerGas?: bigint | undefined,
+    },
+  ): Promise<ExtendEntityReceipt[]>
 
   /**
    * Install callbacks that will be invoked for every GolemBase transaction
@@ -372,6 +414,11 @@ export async function createClient(
       updates: GolemBaseUpdate[] = [],
       deletes: Hex[] = [],
       extensions: GolemBaseExtend[] = [],
+      args: {
+        txHashCallback?: (txHash: Hex) => void
+        maxFeePerGas?: bigint,
+        maxPriorityFeePerGas?: bigint,
+      } = {},
     ): Promise<{
       createEntitiesReceipts: CreateEntityReceipt[],
       updateEntitiesReceipts: UpdateEntityReceipt[],
@@ -379,7 +426,7 @@ export async function createClient(
       extendEntitiesReceipts: ExtendEntityReceipt[],
     }> {
       const receipt = await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt(
-        creates, updates, deletes, extensions
+        creates, updates, deletes, extensions, args
       )
       log.debug("Got receipt:", receipt)
       const out = parseTransactionLogs(receipt.logs)
@@ -389,43 +436,57 @@ export async function createClient(
 
     async createEntities(
       this: GolemBaseClient,
-      creates: GolemBaseCreate[]
+      creates: GolemBaseCreate[],
+      args: {
+        txHashCallback?: (txHash: Hex) => void
+        maxFeePerGas?: bigint,
+        maxPriorityFeePerGas?: bigint,
+      } = {},
     ): Promise<CreateEntityReceipt[]> {
       return (await this.sendTransaction(
-        creates
+        creates, [], [], [], args
       )).createEntitiesReceipts
     },
 
     async updateEntities(
       this: GolemBaseClient,
-      updates: GolemBaseUpdate[]
+      updates: GolemBaseUpdate[],
+      args: {
+        txHashCallback?: (txHash: Hex) => void
+        maxFeePerGas?: bigint,
+        maxPriorityFeePerGas?: bigint,
+      } = {},
     ): Promise<UpdateEntityReceipt[]> {
       return (await this.sendTransaction(
-        [],
-        updates
+        [], updates, [], [], args
       )).updateEntitiesReceipts
     },
 
     async deleteEntities(
       this: GolemBaseClient,
-      deletes: Hex[]
+      deletes: Hex[],
+      args: {
+        txHashCallback?: (txHash: Hex) => void
+        maxFeePerGas?: bigint,
+        maxPriorityFeePerGas?: bigint,
+      } = {},
     ): Promise<DeleteEntityReceipt[]> {
       return (await this.sendTransaction(
-        [],
-        [],
-        deletes,
+        [], [], deletes, [], args
       )).deleteEntitiesReceipts
     },
 
     async extendEntities(
       this: GolemBaseClient,
-      extensions: GolemBaseExtend[]
+      extensions: GolemBaseExtend[],
+      args: {
+        txHashCallback?: (txHash: Hex) => void
+        maxFeePerGas?: bigint,
+        maxPriorityFeePerGas?: bigint,
+      } = {},
     ): Promise<ExtendEntityReceipt[]> {
       return (await this.sendTransaction(
-        [],
-        [],
-        [],
-        extensions,
+        [], [], [], extensions, args
       )).extendEntitiesReceipts
     },
 

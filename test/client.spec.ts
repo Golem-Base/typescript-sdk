@@ -8,7 +8,6 @@ import {
   Logger
 } from "tslog"
 import xdg from "xdg-portable"
-//import { spawn } from "child_process"
 import {
   createClient,
   type GolemBaseClient,
@@ -76,14 +75,18 @@ describe("the golem-base client", () => {
     return entitiesOwned.length
   }
 
-  async function deleteAllEntitiesWithIndex(client: GolemBaseClient, index: number): Promise<void[]> {
+  async function deleteAllEntitiesWithIndex(
+    client: GolemBaseClient,
+    index: number,
+    txHashCallback: (txHash: Hex) => void,
+  ): Promise<void[]> {
     log.debug("Deleting entities with index", index)
     const queryResult = await client.queryEntities(`ix = ${index}`)
     log.debug("deleteEntitiesWithIndex, queryResult", queryResult)
     return Promise.all(
       queryResult.map(async (res) => {
         log.debug("Deleting entity with key", res.entityKey)
-        await client.deleteEntities([res.entityKey])
+        await client.deleteEntities([res.entityKey], { txHashCallback })
       })
     )
   }
@@ -126,8 +129,12 @@ describe("the golem-base client", () => {
         numericAnnotations: [new Annotation("ix", 3)]
       }
     ]
-    const receipts = await client.createEntities(creates)
-    entitiesOwnedCount += creates.length
+    const receipts = await client.createEntities(creates, {
+      txHashCallback: (txHash) => {
+        expect(txHash).to.exist
+        entitiesOwnedCount += creates.length
+      }
+    })
     // Save this key for later
     entityKey = receipts[0].entityKey
 
@@ -195,16 +202,28 @@ describe("the golem-base client", () => {
     ])
   })
 
+  let callbackCanary: Boolean
+
   it("should be able to update entities", async () => {
     const newData = generateRandomBytes(32)
     const newStringAnnotation = generateRandomString(32)
-    const [result] = await client.updateEntities([{
-      entityKey,
-      btl: 10,
-      data: newData,
-      stringAnnotations: [new Annotation("key", newStringAnnotation)],
-      numericAnnotations: [new Annotation("ix", 2)],
-    }])
+    callbackCanary = false
+    const [result] = await client.updateEntities(
+      [{
+        entityKey,
+        btl: 10,
+        data: newData,
+        stringAnnotations: [new Annotation("key", newStringAnnotation)],
+        numericAnnotations: [new Annotation("ix", 2)],
+      }],
+      {
+        txHashCallback: (txHash) => {
+          expect(txHash).to.exist
+          callbackCanary = true
+        }
+      }
+    )
+    expect(callbackCanary).to.eql(true)
     expect(result).to.exist
     log.debug(result)
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
@@ -212,10 +231,20 @@ describe("the golem-base client", () => {
 
   it("should be able to extend entities", async () => {
     const numberOfBlocks = 20
-    const [result] = await client.extendEntities([{
-      entityKey,
-      numberOfBlocks,
-    }])
+    callbackCanary = false
+    const [result] = await client.extendEntities(
+      [{
+        entityKey,
+        numberOfBlocks,
+      }],
+      {
+        txHashCallback: (txHash) => {
+          expect(txHash).to.exist
+          callbackCanary = true
+        }
+      }
+    )
+    expect(callbackCanary).to.eql(true)
     expect(result).to.exist
     log.debug(`Extend result: ${JSON.stringify(result, (_, v) => typeof v === 'bigint' ? v.toString() : v)}`)
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
@@ -223,15 +252,21 @@ describe("the golem-base client", () => {
   })
 
   it("should be able to delete entities", async () => {
-    await deleteAllEntitiesWithIndex(client, 1)
-    entitiesOwnedCount--
+    await deleteAllEntitiesWithIndex(client, 1, (txHash) => {
+      expect(txHash).to.exist
+      entitiesOwnedCount--
+    })
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
 
-    await deleteAllEntitiesWithIndex(client, 2)
-    entitiesOwnedCount--
+    await deleteAllEntitiesWithIndex(client, 2, (txHash) => {
+      expect(txHash).to.exist
+      entitiesOwnedCount--
+    })
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
-    await deleteAllEntitiesWithIndex(client, 3)
-    entitiesOwnedCount -= 2
+    await deleteAllEntitiesWithIndex(client, 3, (txHash) => {
+      expect(txHash).to.exist
+      entitiesOwnedCount--
+    })
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
   })
 })
