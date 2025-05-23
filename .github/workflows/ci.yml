@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-tests:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -43,6 +43,11 @@ jobs:
           go run ./cmd/golembase account create
           go run ./cmd/golembase account fund
         working-directory: ./gb-op-geth
+
+      - name: Build
+        run: |
+          nix develop --command pnpm install
+          nix develop --command pnpm build
 
       - name: Run tests
         run: |
