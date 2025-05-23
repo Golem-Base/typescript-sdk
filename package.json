@@ -23,7 +23,7 @@
   "license": "GPL-3.0-only",
   "packageManager": "pnpm@10.5.2",
   "dependencies": {
-    "@types/node": "^22.15.19",
+    "@types/node": "^22.15.21",
     "tslog": "^4.9.3",
     "viem": "^2.30.0"
   },
