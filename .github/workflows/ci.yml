@@ -1,0 +1,50 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run a gb-op-geth container
+        run: >
+          docker run -d -p 8545:8545 -e GITHUB_ACTIONS=true -e CI=true
+          quay.io/golemnetwork/gb-op-geth:latest --dev --http --http.api
+          'eth,web3,net,debug,golembase' --verbosity 3 --http.addr '0.0.0.0' --http.port 8545
+          --http.corsdomain '*' --http.vhosts '*' --ws --ws.addr '0.0.0.0' --ws.port 8545
+
+      - name: Check out the SDK repo
+        uses: actions/checkout@v4
+
+      - name: Check out the gb-op-geth repo
+        uses: actions/checkout@v4
+        with:
+          repository: Golem-Base/golembase-op-geth
+          path: gb-op-geth
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "gb-op-geth/go.mod"
+          cache-dependency-path: |
+            gb-op-geth/go.sum
+
+      - name: Create and fund an account
+        run: |
+          go run ./cmd/golembase account create
+          go run ./cmd/golembase account fund
+        working-directory: ./gb-op-geth
+
+      - name: Run tests
+        run: |
+          nix develop --command pnpm install
+          nix develop --command pnpm test
