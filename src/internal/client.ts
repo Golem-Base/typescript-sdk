@@ -133,8 +133,11 @@ export type GolemBaseWalletActions = {
     updates?: GolemBaseUpdate[],
     deletes?: Hex[],
     extensions?: GolemBaseExtend[],
-    maxFeePerGas?: bigint | undefined,
-    maxPriorityFeePerGas?: bigint | undefined,
+    args?: {
+      maxFeePerGas?: bigint,
+      maxPriorityFeePerGas?: bigint,
+      txHashCallback?: (txHash: Hex) => void
+    },
   ): Promise<TransactionReceipt>
 }
 
@@ -329,16 +332,21 @@ export async function createClient(
         updates: GolemBaseUpdate[] = [],
         deletes: Hex[] = [],
         extensions: GolemBaseExtend[] = [],
-        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
-        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+        args: {
+          maxFeePerGas?: bigint,
+          maxPriorityFeePerGas?: bigint,
+          txHashCallback?: (txHash: Hex) => void
+        } = {},
       ): Promise<TransactionReceipt> {
-        return client.waitForTransactionReceipt({
-          hash: await this.createRawStorageTransaction(
-            createPayload({ creates, updates, deletes, extensions }),
-            maxFeePerGas,
-            maxPriorityFeePerGas,
-          )
-        })
+        const hash = await this.createRawStorageTransaction(
+          createPayload({ creates, updates, deletes, extensions }),
+          args.maxFeePerGas,
+          args.maxPriorityFeePerGas,
+        )
+        if (args.txHashCallback) {
+          args.txHashCallback(hash)
+        }
+        return client.waitForTransactionReceipt({ hash })
       },
     })),
     wsClient: createPublicClient({
