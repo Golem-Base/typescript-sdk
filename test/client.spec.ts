@@ -118,13 +118,13 @@ describe("the golem-base client", () => {
       },
       {
         data,
-        btl: 5,
+        btl: 15,
         stringAnnotations: [new Annotation("key", generateRandomString(32))],
         numericAnnotations: [new Annotation("ix", 3)]
       },
       {
         data,
-        btl: 5,
+        btl: 15,
         stringAnnotations: [new Annotation("key", generateRandomString(32))],
         numericAnnotations: [new Annotation("ix", 3)]
       }
@@ -252,21 +252,28 @@ describe("the golem-base client", () => {
   })
 
   it("should be able to delete entities", async () => {
+    log.info("Number of entities owned:", await numOfEntitiesOwned(client))
     await deleteAllEntitiesWithIndex(client, 1, (txHash) => {
       expect(txHash).to.exist
       entitiesOwnedCount--
     })
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
 
+    log.info("Number of entities owned:", await numOfEntitiesOwned(client))
     await deleteAllEntitiesWithIndex(client, 2, (txHash) => {
       expect(txHash).to.exist
       entitiesOwnedCount--
     })
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
+
+    log.info("Number of entities owned:", await numOfEntitiesOwned(client))
     await deleteAllEntitiesWithIndex(client, 3, (txHash) => {
       expect(txHash).to.exist
       entitiesOwnedCount--
     })
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
+
+    log.info("Number of entities owned:", await numOfEntitiesOwned(client))
   })
+
 })

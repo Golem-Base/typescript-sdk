@@ -135,13 +135,13 @@ describe("the internal golem-base client", () => {
       },
       {
         data,
-        btl: 5,
+        btl: 15,
         stringAnnotations: [new Annotation("key", generateRandomString(32))],
         numericAnnotations: [new Annotation("ix", 3)]
       },
       {
         data,
-        btl: 5,
+        btl: 15,
         stringAnnotations: [new Annotation("key", generateRandomString(32))],
         numericAnnotations: [new Annotation("ix", 3)]
       }
@@ -249,6 +249,7 @@ describe("the internal golem-base client", () => {
     await deleteAllEntitiesWithIndex(client, 2)
     entitiesOwnedCount--
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")
+
     await deleteAllEntitiesWithIndex(client, 3)
     entitiesOwnedCount -= 2
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount, "wrong number of entities owned")

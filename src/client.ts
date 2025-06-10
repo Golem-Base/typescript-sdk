@@ -123,7 +123,8 @@ export interface GolemBaseClient {
     deletes?: Hex[],
     extensions?: GolemBaseExtend[],
     args?: {
-      txHashCallback?: (txHash: Hex) => void
+      txHashCallback?: (txHash: Hex) => void,
+      gas?: bigint,
       maxFeePerGas?: bigint | undefined,
       maxPriorityFeePerGas?: bigint | undefined,
     },
@@ -146,7 +147,8 @@ export interface GolemBaseClient {
   createEntities(
     creates: GolemBaseCreate[],
     args?: {
-      txHashCallback?: (txHash: Hex) => void
+      txHashCallback?: (txHash: Hex) => void,
+      gas?: bigint,
       maxFeePerGas?: bigint | undefined,
       maxPriorityFeePerGas?: bigint | undefined,
     },
@@ -164,7 +166,8 @@ export interface GolemBaseClient {
   updateEntities(
     updates: GolemBaseUpdate[],
     args?: {
-      txHashCallback?: (txHash: Hex) => void
+      txHashCallback?: (txHash: Hex) => void,
+      gas?: bigint,
       maxFeePerGas?: bigint | undefined,
       maxPriorityFeePerGas?: bigint | undefined,
     },
@@ -181,7 +184,8 @@ export interface GolemBaseClient {
   deleteEntities(
     deletes: Hex[],
     args?: {
-      txHashCallback?: (txHash: Hex) => void
+      txHashCallback?: (txHash: Hex) => void,
+      gas?: bigint,
       maxFeePerGas?: bigint | undefined,
       maxPriorityFeePerGas?: bigint | undefined,
     },
@@ -200,7 +204,8 @@ export interface GolemBaseClient {
   extendEntities(
     extensions: GolemBaseExtend[],
     args?: {
-      txHashCallback?: (txHash: Hex) => void
+      txHashCallback?: (txHash: Hex) => void,
+      gas?: bigint,
       maxFeePerGas?: bigint | undefined,
       maxPriorityFeePerGas?: bigint | undefined,
     },
@@ -410,12 +415,14 @@ export async function createClient(
     },
 
     async sendTransaction(
+      this: GolemBaseClient,
       creates: GolemBaseCreate[] = [],
       updates: GolemBaseUpdate[] = [],
       deletes: Hex[] = [],
       extensions: GolemBaseExtend[] = [],
       args: {
-        txHashCallback?: (txHash: Hex) => void
+        txHashCallback?: (txHash: Hex) => void,
+        gas?: bigint,
         maxFeePerGas?: bigint,
         maxPriorityFeePerGas?: bigint,
       } = {},
@@ -429,6 +436,7 @@ export async function createClient(
         creates, updates, deletes, extensions, args
       )
       log.debug("Got receipt:", receipt)
+
       const out = parseTransactionLogs(receipt.logs)
       log.debug("parsed transaction log:", out)
       return out
@@ -438,7 +446,8 @@ export async function createClient(
       this: GolemBaseClient,
       creates: GolemBaseCreate[],
       args: {
-        txHashCallback?: (txHash: Hex) => void
+        txHashCallback?: (txHash: Hex) => void,
+        gas?: bigint,
         maxFeePerGas?: bigint,
         maxPriorityFeePerGas?: bigint,
       } = {},
@@ -452,7 +461,8 @@ export async function createClient(
       this: GolemBaseClient,
       updates: GolemBaseUpdate[],
       args: {
-        txHashCallback?: (txHash: Hex) => void
+        txHashCallback?: (txHash: Hex) => void,
+        gas?: bigint,
         maxFeePerGas?: bigint,
         maxPriorityFeePerGas?: bigint,
       } = {},
@@ -466,7 +476,8 @@ export async function createClient(
       this: GolemBaseClient,
       deletes: Hex[],
       args: {
-        txHashCallback?: (txHash: Hex) => void
+        txHashCallback?: (txHash: Hex) => void,
+        gas?: bigint,
         maxFeePerGas?: bigint,
         maxPriorityFeePerGas?: bigint,
       } = {},
@@ -480,7 +491,8 @@ export async function createClient(
       this: GolemBaseClient,
       extensions: GolemBaseExtend[],
       args: {
-        txHashCallback?: (txHash: Hex) => void
+        txHashCallback?: (txHash: Hex) => void,
+        gas?: bigint,
         maxFeePerGas?: bigint,
         maxPriorityFeePerGas?: bigint,
       } = {},
