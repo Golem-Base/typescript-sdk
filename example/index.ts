@@ -41,7 +41,7 @@ async function main() {
       1337,
       key,
       'http://localhost:8545',
-      'ws://localhost:8546',
+      'ws://localhost:8545',
       log,
     ),
     demo: await createClient(
@@ -78,6 +78,9 @@ async function main() {
     },
     onDeleted: (args) => {
       log.info("Got deletion event:", args)
+    },
+    onError: (error) => {
+      log.error("Got error:", error)
     },
     pollingInterval: 500,
     transport: "http",
@@ -195,17 +198,18 @@ async function main() {
     await client.queryEntities("ix = 1 || ix = 2 || ix = 3"),
     async result => {
       const metadata = await client.getEntityMetaData(result.entityKey)
-      return metadata.owner === await client.getOwnerAddress()
+      return metadata.owner === (await client.getOwnerAddress()).toLocaleLowerCase()
     }
   )).map(result => result.entityKey)
 
+  log.info("Entities to delete:", toDelete)
   if (toDelete.length !== 0) {
     await client.deleteEntities(toDelete)
   }
 
   log.info("Number of entities owned:", await numOfEntitiesOwned())
 
-  log.debug("Current balance: ", formatEther(await client.getRawClient().httpClient.getBalance({
+  log.info("Current balance: ", formatEther(await client.getRawClient().httpClient.getBalance({
     address: await client.getOwnerAddress(),
     blockTag: 'latest'
   })))
