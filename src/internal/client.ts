@@ -20,8 +20,7 @@ import {
   custom,
   CustomTransport,
   toRlp,
-  TransactionExecutionError,
-  CallExecutionError,
+  PublicClient,
 } from 'viem'
 import {
   privateKeyToAccount,
@@ -148,41 +147,281 @@ export type GolemBaseWalletActions = {
 
 export type AllActions<
   transport extends Transport = Transport,
-  chain extends Chain | undefined = Chain | undefined,
-  account extends Account | undefined = Account | undefined,
 > =
-  PublicActions<transport, chain, account> &
-  WalletActions<chain, account> &
+  PublicActions<transport, Chain, Account> &
+  WalletActions<Chain, Account> &
   GolemBaseActions
 
-export type GolemBaseClient<
-  chain extends Chain | undefined = Chain | undefined,
-  account extends Account | undefined = Account | undefined,
-> = {
+export type GolemBaseClient = {
   walletClient: Client<
     HttpTransport | CustomTransport,
-    chain,
-    account,
+    Chain,
+    Account,
     RpcSchema,
-    WalletActions<chain, account> & PublicActions<HttpTransport | CustomTransport,
-      chain,
-      account> & GolemBaseWalletActions
+    WalletActions<Chain, Account> & PublicActions<HttpTransport | CustomTransport,
+      Chain,
+      Account> & GolemBaseWalletActions
   >,
   httpClient: Client<
     HttpTransport,
-    chain,
-    account,
+    Chain,
+    Account | undefined,
     RpcSchema,
-    PublicActions<HttpTransport, chain, account> & GolemBaseActions
+    PublicActions<HttpTransport, Chain, Account | undefined> & GolemBaseActions
   >,
   wsClient: Client<
     WebSocketTransport,
-    chain,
-    account,
+    Chain,
+    Account | undefined,
     RpcSchema,
-    PublicActions<WebSocketTransport, chain, account>
+    PublicActions<WebSocketTransport, Chain, Account | undefined>
   >
 }
+
+function mkHttpClient(rpcUrl: string, chain: Chain): Client<
+  HttpTransport,
+  Chain,
+  Account | undefined,
+  RpcSchema,
+  PublicActions<HttpTransport, Chain, Account | undefined> & GolemBaseActions
+> {
+  return createPublicClient<HttpTransport, Chain, Account | undefined>({
+    chain,
+    transport: http(rpcUrl),
+  }).extend((client) => ({
+    /**
+     * Get the storage value associated with the given entity key
+     */
+    async getStorageValue(args: GolemGetStorageValueInputParams): Promise<Uint8Array> {
+      return Buffer.from(await client.request<GolemGetStorageValueSchema>({
+        method: 'golembase_getStorageValue',
+        params: [args]
+      }), "base64")
+    },
+    /**
+     * Get the full entity information
+     */
+    async getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<EntityMetaData> {
+      return client.request<GolemGetEntityMetaDataSchema>({
+        method: 'golembase_getEntityMetaData',
+        params: [args]
+      })
+    },
+    /**
+     * Get all entity keys for entities that will expire at the given block number
+     */
+    async getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]> {
+      return client.request<GolemGetEntitiesToExpireAtBlockSchema>({
+        method: 'golembase_getEntitiesToExpireAtBlock',
+        // TODO: bigint gets serialised in json as a string, which the api doesn't accept.
+        // is there a better workaround?
+        params: [Number(blockNumber)]
+      })
+    },
+    async getEntityCount(): Promise<number> {
+      return client.request<GolemGetEntityCountSchema>({
+        method: 'golembase_getEntityCount',
+        params: []
+      })
+    },
+    async getAllEntityKeys(): Promise<Hex[]> {
+      return await client.request<GolemGetAllEntityKeysSchema>({
+        method: 'golembase_getAllEntityKeys',
+        params: []
+      })
+    },
+    async getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<Hex[]> {
+      return client.request<GolemGetEntitiesOfOwnerSchema>({
+        method: 'golembase_getEntitiesOfOwner',
+        params: [args]
+      })
+    },
+    async queryEntities(args: GolemQueryEntitiesInputParams): Promise<{ key: Hex, value: Uint8Array }[]> {
+      return (await client.request<GolemQueryEntitiesSchema>({
+        method: 'golembase_queryEntities',
+        params: [args]
+      })).map((res: { key: Hex, value: string }) => ({
+        key: res.key,
+        value: Buffer.from(res.value, "base64"),
+      }))
+    },
+  }))
+}
+
+function mkWebSocketClient(wsUrl: string, chain: Chain):
+  PublicClient<WebSocketTransport, Chain, Account | undefined, RpcSchema> {
+  return createPublicClient<WebSocketTransport, Chain, Account | undefined, RpcSchema>({
+    chain,
+    transport: webSocket(wsUrl),
+  })
+}
+
+async function mkWalletClient(
+  accountData: AccountData,
+  chain: Chain,
+  log: Logger<ILogObj>,
+): Promise<Client<
+  HttpTransport | CustomTransport,
+  Chain,
+  Account,
+  RpcSchema,
+  WalletActions<Chain, Account> & PublicActions<HttpTransport | CustomTransport,
+    Chain,
+    Account> & GolemBaseWalletActions>> {
+  const defaultMaxFeePerGas = undefined
+  const defaultMaxPriorityFeePerGas = undefined
+
+  let walletClient: Client<
+    HttpTransport | CustomTransport,
+    Chain,
+    Account,
+    RpcSchema,
+    WalletActions<Chain, Account>
+  >
+  if (accountData.tag === "privatekey") {
+    walletClient = createWalletClient({
+      account: privateKeyToAccount(toHex(accountData.data, { size: 32 }), { nonceManager }),
+      chain,
+      transport: http(),
+    })
+  } else {
+    const [account]: [SmartAccount] = await accountData.data.request({ method: 'eth_requestAccounts' })
+    walletClient = createWalletClient({
+      account,
+      chain,
+      transport: custom(accountData.data),
+    })
+  }
+
+  function createPayload(tx: GolemBaseTransaction): Hex {
+    function formatAnnotation<
+      T extends string | number | bigint | boolean
+    >(annotation: { key: string, value: T, }): [Hex, Hex] {
+      return [toHex(annotation.key), toHex(annotation.value)]
+    }
+
+    log.debug("Transaction:", JSON.stringify(tx, null, 2))
+    const payload = [
+      // Create
+      (tx.creates || []).map(el => [
+        toHex(el.btl),
+        toHex(el.data),
+        el.stringAnnotations.map(formatAnnotation),
+        el.numericAnnotations.map(formatAnnotation),
+      ]),
+
+      // Update
+      (tx.updates || []).map(el => [
+        el.entityKey,
+        toHex(el.btl),
+        toHex(el.data),
+        el.stringAnnotations.map(formatAnnotation),
+        el.numericAnnotations.map(formatAnnotation),
+      ]),
+
+      // Delete
+      (tx.deletes || []),
+
+      // Extend
+      (tx.extensions || []).map(el => [
+        el.entityKey,
+        toHex(el.numberOfBlocks),
+      ]),
+    ]
+    log.debug("Payload before RLP encoding:", JSON.stringify(payload, null, 2))
+    return toRlp(payload)
+  }
+
+  return walletClient.extend(publicActions).extend((client) => ({
+    async createRawStorageTransaction(
+      data: Hex,
+      gas: bigint | undefined,
+      maxFeePerGas: bigint | undefined,
+      maxPriorityFeePerGas: bigint | undefined,
+    ): Promise<Hex> {
+      const value = 0n
+      const type = 'eip1559'
+
+      const hash = await client.sendTransaction({
+        account: client.account,
+        chain: client.chain,
+        to: storageAddress,
+        gas,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+        type,
+        value,
+        data,
+        nonceManager,
+      })
+
+      log.debug("Got transaction hash:", hash)
+      return hash
+    },
+
+    async sendGolemBaseTransaction(
+      creates: GolemBaseCreate[] = [],
+      updates: GolemBaseUpdate[] = [],
+      deletes: Hex[] = [],
+      extensions: GolemBaseExtend[] = [],
+      gas: bigint | undefined,
+      maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
+      maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
+    ): Promise<Hex> {
+      return this.createRawStorageTransaction(
+        createPayload({ creates, updates, deletes, extensions }),
+        gas,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+      )
+    },
+
+    async sendGolemBaseTransactionAndWaitForReceipt(
+      creates: GolemBaseCreate[] = [],
+      updates: GolemBaseUpdate[] = [],
+      deletes: Hex[] = [],
+      extensions: GolemBaseExtend[] = [],
+      args: {
+        gas?: bigint,
+        maxFeePerGas?: bigint,
+        maxPriorityFeePerGas?: bigint,
+        txHashCallback?: (txHash: Hex) => void
+      } = {},
+    ): Promise<TransactionReceipt> {
+      const data = createPayload({ creates, updates, deletes, extensions })
+      const hash = await this.createRawStorageTransaction(
+        data,
+        args.gas,
+        args.maxFeePerGas,
+        args.maxPriorityFeePerGas,
+      )
+      if (args.txHashCallback) {
+        args.txHashCallback(hash)
+      }
+      const receipt = await client.waitForTransactionReceipt({ hash })
+
+      // If the tx was reverted, then we run it again with eth_call so that we
+      // get a descriptive error message.
+      // The eth_call method will throw an exception.
+      if (receipt.status === "reverted") {
+        await client.call({
+          account: client.account,
+          to: storageAddress,
+          gas: args.gas,
+          maxFeePerGas: args.maxFeePerGas,
+          maxPriorityFeePerGas: args.maxPriorityFeePerGas,
+          type: "eip1559",
+          value: 0n,
+          data,
+        })
+      }
+
+      // If we get here, the tx was successful.
+      return receipt
+    },
+  }))
+}
+
 
 /**
  * Create a client to interact with GolemBase
@@ -206,42 +445,7 @@ export async function createClient(
 
   const log = logger.getSubLogger({ name: "internal" });
 
-  function createPayload(tx: GolemBaseTransaction): Hex {
-    function formatAnnotation<
-      T extends string | number | bigint | boolean
-    >(annotation: { key: string, value: T, }): [Hex, Hex] {
-      return [toHex(annotation.key), toHex(annotation.value)]
-    }
-
-    log.debug("Transaction:", JSON.stringify(tx, null, 2))
-    const payload = [
-      // Create
-      (tx.creates || []).map(el => [
-        toHex(el.btl),
-        toHex(el.data),
-        el.stringAnnotations.map(formatAnnotation),
-        el.numericAnnotations.map(formatAnnotation),
-      ]),
-      // Update
-      (tx.updates || []).map(el => [
-        el.entityKey,
-        toHex(el.btl),
-        toHex(el.data),
-        el.stringAnnotations.map(formatAnnotation),
-        el.numericAnnotations.map(formatAnnotation),
-      ]),
-      // Delete
-      (tx.deletes || []),
-      (tx.extensions || []).map(el => [
-        el.entityKey,
-        toHex(el.numberOfBlocks),
-      ]),
-    ]
-    log.debug("Payload before RLP encoding:", JSON.stringify(payload, null, 2))
-    return toRlp(payload)
-  }
-
-  const chain = defineChain({
+  const chain: Chain = defineChain({
     id: chainId,
     name: "golem-base",
     nativeCurrency: {
@@ -263,186 +467,9 @@ export async function createClient(
     chain
   })
 
-  async function mkWalletClient(): Promise<Client<
-    HttpTransport | CustomTransport,
-    Chain,
-    Account,
-    RpcSchema,
-    WalletActions
-  >> {
-    if (accountData.tag === "privatekey") {
-      return createWalletClient({
-        account: privateKeyToAccount(toHex(accountData.data, { size: 32 }), { nonceManager }),
-        chain,
-        transport: http(),
-      })
-    } else {
-      const [account]: [SmartAccount] = await accountData.data.request({ method: 'eth_requestAccounts' })
-      return createWalletClient({
-        account,
-        chain,
-        transport: custom(accountData.data),
-      })
-    }
-  }
-  const walletClient = await mkWalletClient()
-
-  const defaultMaxFeePerGas = undefined
-  const defaultMaxPriorityFeePerGas = undefined
-
   return {
-    walletClient: walletClient.extend(publicActions).extend(client => ({
-      async createRawStorageTransaction(
-        data: Hex,
-        gas: bigint | undefined,
-        maxFeePerGas: bigint | undefined,
-        maxPriorityFeePerGas: bigint | undefined,
-      ): Promise<Hex> {
-        const value = 0n
-        const type = 'eip1559'
-
-        const hash = await client.sendTransaction({
-          account: client.account,
-          chain: client.chain,
-          to: storageAddress,
-          gas,
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-          type,
-          value,
-          data,
-          nonceManager,
-        })
-
-        log.debug("Got transaction hash:", hash)
-        return hash
-      },
-
-      async sendGolemBaseTransaction(
-        creates: GolemBaseCreate[] = [],
-        updates: GolemBaseUpdate[] = [],
-        deletes: Hex[] = [],
-        extensions: GolemBaseExtend[] = [],
-        gas: bigint | undefined,
-        maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
-        maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
-      ): Promise<Hex> {
-        return this.createRawStorageTransaction(
-          createPayload({ creates, updates, deletes, extensions }),
-          gas,
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-        )
-      },
-
-      async sendGolemBaseTransactionAndWaitForReceipt(
-        creates: GolemBaseCreate[] = [],
-        updates: GolemBaseUpdate[] = [],
-        deletes: Hex[] = [],
-        extensions: GolemBaseExtend[] = [],
-        args: {
-          gas?: bigint,
-          maxFeePerGas?: bigint,
-          maxPriorityFeePerGas?: bigint,
-          txHashCallback?: (txHash: Hex) => void
-        } = {},
-      ): Promise<TransactionReceipt> {
-        const data = createPayload({ creates, updates, deletes, extensions })
-        const hash = await this.createRawStorageTransaction(
-          data,
-          args.gas,
-          args.maxFeePerGas,
-          args.maxPriorityFeePerGas,
-        )
-        if (args.txHashCallback) {
-          args.txHashCallback(hash)
-        }
-        const receipt = await client.waitForTransactionReceipt({ hash })
-
-        // If the tx was reverted, then we run it again with eth_call so that we
-        // get a descriptive error message.
-        // The eth_call method will throw an exception.
-        if (receipt.status === "reverted") {
-          await client.call({
-            account: client.account,
-            to: storageAddress,
-            gas: args.gas,
-            maxFeePerGas: args.maxFeePerGas,
-            maxPriorityFeePerGas: args.maxPriorityFeePerGas,
-            type: "eip1559",
-            value: 0n,
-            data,
-          })
-        }
-
-        // If we get here, the tx was successful.
-        return receipt
-      },
-    })),
-    wsClient: createPublicClient({
-      chain,
-      transport: webSocket(wsUrl),
-    }),
-    httpClient: createPublicClient({
-      chain,
-      transport: http(),
-    }).extend(client => ({
-      /**
-       * Get the storage value associated with the given entity key
-       */
-      async getStorageValue(args: GolemGetStorageValueInputParams): Promise<Uint8Array> {
-        return Buffer.from(await client.request<GolemGetStorageValueSchema>({
-          method: 'golembase_getStorageValue',
-          params: [args]
-        }), "base64")
-      },
-      /**
-       * Get the full entity information
-       */
-      async getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<EntityMetaData> {
-        return client.request<GolemGetEntityMetaDataSchema>({
-          method: 'golembase_getEntityMetaData',
-          params: [args]
-        })
-      },
-      /**
-       * Get all entity keys for entities that will expire at the given block number
-       */
-      async getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]> {
-        return client.request<GolemGetEntitiesToExpireAtBlockSchema>({
-          method: 'golembase_getEntitiesToExpireAtBlock',
-          // TODO: bigint gets serialised in json as a string, which the api doesn't accept.
-          // is there a better workaround?
-          params: [Number(blockNumber)]
-        })
-      },
-      async getEntityCount(): Promise<number> {
-        return client.request<GolemGetEntityCountSchema>({
-          method: 'golembase_getEntityCount',
-          params: []
-        })
-      },
-      async getAllEntityKeys(): Promise<Hex[]> {
-        return await client.request<GolemGetAllEntityKeysSchema>({
-          method: 'golembase_getAllEntityKeys',
-          params: []
-        })
-      },
-      async getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<Hex[]> {
-        return client.request<GolemGetEntitiesOfOwnerSchema>({
-          method: 'golembase_getEntitiesOfOwner',
-          params: [args]
-        })
-      },
-      async queryEntities(args: GolemQueryEntitiesInputParams): Promise<{ key: Hex, value: Uint8Array }[]> {
-        return (await client.request<GolemQueryEntitiesSchema>({
-          method: 'golembase_queryEntities',
-          params: [args]
-        })).map((res) => ({
-          key: res.key,
-          value: Buffer.from(res.value, "base64"),
-        }))
-      },
-    }))
+    httpClient: mkHttpClient(rpcUrl, chain),
+    wsClient: mkWebSocketClient(wsUrl, chain),
+    walletClient: await mkWalletClient(accountData, chain, log),
   }
 }
