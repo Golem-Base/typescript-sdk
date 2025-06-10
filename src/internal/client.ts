@@ -20,6 +20,8 @@ import {
   custom,
   CustomTransport,
   toRlp,
+  TransactionExecutionError,
+  CallExecutionError,
 } from 'viem'
 import {
   privateKeyToAccount,
@@ -115,6 +117,7 @@ export type GolemBaseActions = {
 export type GolemBaseWalletActions = {
   createRawStorageTransaction(
     payload: Hex,
+    gas: bigint | undefined,
     maxFeePerGas: bigint | undefined,
     maxPriorityFeePerGas: bigint | undefined,
   ): Promise<Hex>
@@ -124,8 +127,9 @@ export type GolemBaseWalletActions = {
     updates?: GolemBaseUpdate[],
     deletes?: Hex[],
     extensions?: GolemBaseExtend[],
-    maxFeePerGas?: bigint | undefined,
-    maxPriorityFeePerGas?: bigint | undefined,
+    gas?: bigint,
+    maxFeePerGas?: bigint,
+    maxPriorityFeePerGas?: bigint,
   ): Promise<Hex>
 
   sendGolemBaseTransactionAndWaitForReceipt(
@@ -134,6 +138,7 @@ export type GolemBaseWalletActions = {
     deletes?: Hex[],
     extensions?: GolemBaseExtend[],
     args?: {
+      gas?: bigint,
       maxFeePerGas?: bigint,
       maxPriorityFeePerGas?: bigint,
       txHashCallback?: (txHash: Hex) => void
@@ -289,6 +294,7 @@ export async function createClient(
     walletClient: walletClient.extend(publicActions).extend(client => ({
       async createRawStorageTransaction(
         data: Hex,
+        gas: bigint | undefined,
         maxFeePerGas: bigint | undefined,
         maxPriorityFeePerGas: bigint | undefined,
       ): Promise<Hex> {
@@ -299,11 +305,11 @@ export async function createClient(
           account: client.account,
           chain: client.chain,
           to: storageAddress,
+          gas,
           maxFeePerGas,
           maxPriorityFeePerGas,
           type,
           value,
-          gas: undefined,
           data,
           nonceManager,
         })
@@ -317,11 +323,13 @@ export async function createClient(
         updates: GolemBaseUpdate[] = [],
         deletes: Hex[] = [],
         extensions: GolemBaseExtend[] = [],
+        gas: bigint | undefined,
         maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
         maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
       ): Promise<Hex> {
         return this.createRawStorageTransaction(
           createPayload({ creates, updates, deletes, extensions }),
+          gas,
           maxFeePerGas,
           maxPriorityFeePerGas,
         )
@@ -333,20 +341,42 @@ export async function createClient(
         deletes: Hex[] = [],
         extensions: GolemBaseExtend[] = [],
         args: {
+          gas?: bigint,
           maxFeePerGas?: bigint,
           maxPriorityFeePerGas?: bigint,
           txHashCallback?: (txHash: Hex) => void
         } = {},
       ): Promise<TransactionReceipt> {
+        const data = createPayload({ creates, updates, deletes, extensions })
         const hash = await this.createRawStorageTransaction(
-          createPayload({ creates, updates, deletes, extensions }),
+          data,
+          args.gas,
           args.maxFeePerGas,
           args.maxPriorityFeePerGas,
         )
         if (args.txHashCallback) {
           args.txHashCallback(hash)
         }
-        return client.waitForTransactionReceipt({ hash })
+        const receipt = await client.waitForTransactionReceipt({ hash })
+
+        // If the tx was reverted, then we run it again with eth_call so that we
+        // get a descriptive error message.
+        // The eth_call method will throw an exception.
+        if (receipt.status === "reverted") {
+          await client.call({
+            account: client.account,
+            to: storageAddress,
+            gas: args.gas,
+            maxFeePerGas: args.maxFeePerGas,
+            maxPriorityFeePerGas: args.maxPriorityFeePerGas,
+            type: "eip1559",
+            value: 0n,
+            data,
+          })
+        }
+
+        // If we get here, the tx was successful.
+        return receipt
       },
     })),
     wsClient: createPublicClient({
