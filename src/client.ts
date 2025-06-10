@@ -18,7 +18,7 @@ import {
   Log,
   pad,
   toEventHash,
-  toHex
+  toHex,
 } from "viem";
 
 export type CreateEntityReceipt = {
