@@ -15,11 +15,6 @@ export const golemBaseABI = parseAbi([
   "event GolemBaseStorageEntityUpdated(uint256 indexed entityKey, uint256 expirationBlock)",
   "event GolemBaseStorageEntityDeleted(uint256 indexed entityKey)",
   "event GolemBaseStorageEntityBTLExtended(uint256 indexed entityKey, uint256 oldExpirationBlock, uint256 newExpirationBlock)",
-  // Old ABI event that has a typo in the name and a missing non-indexed argument.
-  // This can be removed once we retire the kaolin network (the only one using this event hash).
-  "event GolemBaseStorageEntityBTLExptended(uint256 indexed entityKey, uint256 expirationBlock)",
-  // Old ABI before renme of TTL -> BTL
-  "event GolemBaseStorageEntityTTLExptended(uint256 indexed entityKey, uint256 expirationBlock)",
 ])
 
 // Golem Base event signatures
