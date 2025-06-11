@@ -299,7 +299,7 @@ export async function createClient(
           return {
             ...receipts,
             createEntitiesReceipts: receipts.createEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey),
+              entityKey: toHex(parsed.args.entityKey, { size: 32 }),
               expirationBlock: Number(parsed.args.expirationBlock),
             }]),
           }
@@ -308,7 +308,7 @@ export async function createClient(
           return {
             ...receipts,
             updateEntitiesReceipts: receipts.updateEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey),
+              entityKey: toHex(parsed.args.entityKey, { size: 32 }),
               expirationBlock: Number(parsed.args.expirationBlock),
             }]),
           }
@@ -317,7 +317,7 @@ export async function createClient(
           return {
             ...receipts,
             extendEntitiesReceipts: receipts.extendEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey),
+              entityKey: toHex(parsed.args.entityKey, { size: 32 }),
               newExpirationBlock: Number(parsed.args.newExpirationBlock),
               oldExpirationBlock: Number(parsed.args.oldExpirationBlock),
             }]),
@@ -327,7 +327,7 @@ export async function createClient(
           return {
             ...receipts,
             deleteEntitiesReceipts: receipts.deleteEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey),
+              entityKey: toHex(parsed.args.entityKey, { size: 32 }),
             }]),
           }
         }
