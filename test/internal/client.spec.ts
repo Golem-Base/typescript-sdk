@@ -15,12 +15,14 @@ import {
   Annotation,
   Tagged,
   type AccountData,
+  golemBaseABI,
 } from "../../src/index.ts"
 import {
   generateRandomBytes,
   generateRandomString,
 } from "../utils.ts"
 import { GolemBaseClient } from '../../src/internal/client.ts'
+import { decodeEventLog, toHex } from 'viem'
 
 const log = new Logger<ILogObj>({
   type: "pretty",
@@ -146,13 +148,26 @@ describe("the internal golem-base client", () => {
         numericAnnotations: [new Annotation("ix", 3)]
       }
     ]
-    const receipts = await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt(creates)
+    const receipt = await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt(creates)
     entitiesOwnedCount += creates.length;
-    // Save this key for later
-    [{ entityKey, expirationBlock }] = receipts.logs.map(txlog => ({
-      entityKey: txlog.topics[1] as Hex,
-      expirationBlock: parseInt(txlog.data),
-    }))
+
+    const txlog = receipt.logs[0]
+    const parsed = decodeEventLog({
+      abi: golemBaseABI,
+      data: txlog.data,
+      topics: txlog.topics
+    })
+
+    expect(parsed.eventName).to.eql("GolemBaseStorageEntityCreated")
+
+    if (parsed.eventName === "GolemBaseStorageEntityCreated") {
+      // Save these for later
+      entityKey = toHex(parsed.args.entityKey, { size: 32 })
+      expirationBlock = Number(parsed.args.expirationBlock)
+    }
+
+    expect(entityKey).to.exist
+    expect(expirationBlock).to.exist
 
     expect(await numOfEntitiesOwned(client)).to.eql(entitiesOwnedCount)
   })
