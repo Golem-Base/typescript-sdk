@@ -331,38 +331,6 @@ export async function createClient(
             }]),
           }
         }
-        // Old ABI event that has a typo in the name and a missing non-indexed argument
-        case "GolemBaseStorageEntityBTLExptended":
-        // Old ABI before renme of TTL -> BTL
-        case "GolemBaseStorageEntityTTLExptended": {
-          // We need to manually parse the data in this case, since one argument is missing from the signature
-          function parseExtendTTLData(data: Hex): { oldExpirationBlock: bigint, newExpirationBlock: bigint, } {
-            // Take the first 64 bytes by masking the rest (shift 1 to the left 256 positions, then negate the number)
-            // Example:
-            // 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 012f
-            //    0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0143
-            // mask this with 0x 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000
-            //                   1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111
-            // to obtain 0x143
-            // and then shift the original number to the right by 256 to obtain 0x12f
-            const dataParsed = BigInt(data)
-            const newExpirationBlock = dataParsed & ((1n << 256n) - 1n)
-            const oldExpirationBlock = dataParsed >> 256n
-            return {
-              oldExpirationBlock,
-              newExpirationBlock,
-            }
-          }
-          const expirationBlocks = parseExtendTTLData(txlog.data)
-          return {
-            ...receipts,
-            extendEntitiesReceipts: receipts.extendEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey),
-              newExpirationBlock: Number(expirationBlocks.newExpirationBlock),
-              oldExpirationBlock: Number(expirationBlocks.oldExpirationBlock),
-            }]),
-          }
-        }
       }
     },
       {
