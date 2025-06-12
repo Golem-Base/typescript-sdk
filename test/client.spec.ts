@@ -23,6 +23,7 @@ import {
 } from "./utils.ts"
 
 const log = new Logger<ILogObj>({
+  name: "client spec",
   type: "pretty",
   minLevel: 3,
 })
