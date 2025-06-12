@@ -152,7 +152,25 @@ export type AllActions<
   WalletActions<Chain, Account> &
   GolemBaseActions
 
-export type GolemBaseClient = {
+export interface GolemBaseROClient {
+  httpClient: Client<
+    HttpTransport,
+    Chain,
+    Account | undefined,
+    RpcSchema,
+    PublicActions<HttpTransport, Chain, Account | undefined> & GolemBaseActions
+  >
+
+  wsClient: Client<
+    WebSocketTransport,
+    Chain,
+    Account | undefined,
+    RpcSchema,
+    PublicActions<WebSocketTransport, Chain, Account | undefined>
+  >
+}
+
+export interface GolemBaseClient extends GolemBaseROClient {
   walletClient: Client<
     HttpTransport | CustomTransport,
     Chain,
@@ -161,20 +179,6 @@ export type GolemBaseClient = {
     WalletActions<Chain, Account> & PublicActions<HttpTransport | CustomTransport,
       Chain,
       Account> & GolemBaseWalletActions
-  >,
-  httpClient: Client<
-    HttpTransport,
-    Chain,
-    Account | undefined,
-    RpcSchema,
-    PublicActions<HttpTransport, Chain, Account | undefined> & GolemBaseActions
-  >,
-  wsClient: Client<
-    WebSocketTransport,
-    Chain,
-    Account | undefined,
-    RpcSchema,
-    PublicActions<WebSocketTransport, Chain, Account | undefined>
   >
 }
 
@@ -422,6 +426,62 @@ async function mkWalletClient(
   }))
 }
 
+function createGolemBaseChain(
+  chainId: number,
+  rpcUrl: string,
+  wsUrl: string,
+): Chain {
+  return defineChain({
+    id: chainId,
+    name: "golem-base",
+    nativeCurrency: {
+      decimals: 18,
+      name: 'Ether',
+      symbol: 'ETH',
+    },
+    rpcUrls: {
+      default: {
+        http: [rpcUrl],
+        websockets: [wsUrl],
+      }
+    },
+  })
+}
+
+/**
+ * Create a read-only client to interact with GolemBase
+ * @param rpcUrl - JSON-RPC URL to talk to
+ * @param wsUrl - WebSocket URL to talk to
+ * @param logger - Optional logger instance to use for logging
+ *
+ * @returns A client object
+ */
+export function createROClient(
+  chainId: number,
+  rpcUrl: string,
+  wsUrl: string,
+  logger: Logger<ILogObj> = new Logger<ILogObj>({
+    type: "hidden",
+    hideLogPositionForProduction: true,
+  })
+): GolemBaseROClient {
+  const log = logger.getSubLogger({ name: "internal" });
+
+  const chain = createGolemBaseChain(
+    chainId, rpcUrl, wsUrl
+  )
+
+  log.debug("Creating internal client", {
+    rpcUrl,
+    wsUrl,
+    chain
+  })
+
+  return {
+    httpClient: mkHttpClient(rpcUrl, chain),
+    wsClient: mkWebSocketClient(wsUrl, chain),
+  }
+}
 
 /**
  * Create a client to interact with GolemBase
@@ -442,24 +502,11 @@ export async function createClient(
     hideLogPositionForProduction: true,
   })
 ): Promise<GolemBaseClient> {
-
   const log = logger.getSubLogger({ name: "internal" });
 
-  const chain: Chain = defineChain({
-    id: chainId,
-    name: "golem-base",
-    nativeCurrency: {
-      decimals: 18,
-      name: 'Ether',
-      symbol: 'ETH',
-    },
-    rpcUrls: {
-      default: {
-        http: [rpcUrl],
-        websockets: [wsUrl],
-      }
-    },
-  })
+  const chain = createGolemBaseChain(
+    chainId, rpcUrl, wsUrl
+  )
 
   log.debug("Creating internal client", {
     rpcUrl,

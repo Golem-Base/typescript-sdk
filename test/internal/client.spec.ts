@@ -25,6 +25,7 @@ import { GolemBaseClient } from '../../src/internal/client.ts'
 import { decodeEventLog, toHex } from 'viem'
 
 const log = new Logger<ILogObj>({
+  name: "internal client spec",
   type: "pretty",
   minLevel: 3,
 })

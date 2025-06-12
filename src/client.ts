@@ -41,19 +41,15 @@ export type ExtendEntityReceipt = {
   newExpirationBlock: number,
 }
 
-export interface GolemBaseClient {
+interface GenericClient<Internal> {
   /**
-   * Get the raw viem.sh ethereum client, which allows to call low-level ethereum
-   * methods directly
+   * Get the internal client which exposes low-level methods and also gives
+   * access to the raw viem.sh ethereum clients,
+   * which allows to call low-level ethereum methods directly
    *
    * @returns - A client object
    */
-  getRawClient(): internal.GolemBaseClient
-
-  /**
-   * Get the ethereum address of the owner of the ethereum account used by this client
-   */
-  getOwnerAddress(): Promise<Hex>
+  getRawClient(): Internal
 
   /**
    * Get the total count of entities in GolemBase
@@ -107,6 +103,41 @@ export interface GolemBaseClient {
    * @returns The entity's metadata
    */
   getEntityMetaData(key: Hex): Promise<EntityMetaData>
+
+  /**
+   * Install callbacks that will be invoked for every GolemBase transaction
+   *
+   * @param args.fromBlock - The starting block, events trigger the callbacks starting from this block
+   * @param args.onCreated - A callback that's invoked whenever entities are created
+   * @param args.onUpdated - A callback that's invoked whenever entitier are updated
+   * @param args.onExtended - A callback that's invoked whenever entities have their BTL extended
+   * @param args.onDeleted - A callback that's invoked whenever entities are deleted
+   * @param args.onError - A callback that's invoked whenever there is an error during the processing
+   * @param args.pollingInterval - In that case of HTTP transport, the polling interval in milliseconds.
+   *                               Defaults to the default polling interval of viem
+   * @param args.transport - The transport to use, either HTTP or WebSocket (the default)
+   *
+   * @returns a callback to cancel the subscription and stop receiving notifications
+   */
+  watchLogs(args: {
+    fromBlock: bigint,
+    onCreated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
+    onUpdated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
+    onExtended: (args: { entityKey: Hex, oldExpirationBlock: number, newExpirationBlock: number, }) => void,
+    onDeleted: (args: { entityKey: Hex, }) => void,
+    onError?: ((error: Error) => void) | undefined,
+    pollingInterval?: number,
+    transport?: `http` | `websocket`
+  }): () => void
+}
+
+export interface GolemBaseROClient extends GenericClient<internal.GolemBaseROClient> { }
+
+export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient> {
+  /**
+   * Get the ethereum address of the owner of the ethereum account used by this client
+   */
+  getOwnerAddress(): Promise<Hex>
 
   /**
    * @param creates - The list of create operations to include in this transaction
@@ -210,136 +241,95 @@ export interface GolemBaseClient {
       maxPriorityFeePerGas?: bigint | undefined,
     },
   ): Promise<ExtendEntityReceipt[]>
-
-  /**
-   * Install callbacks that will be invoked for every GolemBase transaction
-   *
-   * @param args.fromBlock - The starting block, events trigger the callbacks starting from this block
-   * @param args.onCreated - A callback that's invoked whenever entities are created
-   * @param args.onUpdated - A callback that's invoked whenever entitier are updated
-   * @param args.onExtended - A callback that's invoked whenever entities have their BTL extended
-   * @param args.onDeleted - A callback that's invoked whenever entities are deleted
-   * @param args.onError - A callback that's invoked whenever there is an error during the processing
-   * @param args.pollingInterval - In that case of HTTP transport, the polling interval in milliseconds.
-   *                               Defaults to the default polling interval of viem
-   * @param args.transport - The transport to use, either HTTP or WebSocket (the default)
-   *
-   * @returns a callback to cancel the subscription and stop receiving notifications
-   */
-  watchLogs(args: {
-    fromBlock: bigint,
-    onCreated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
-    onUpdated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
-    onExtended: (args: { entityKey: Hex, oldExpirationBlock: number, newExpirationBlock: number, }) => void,
-    onDeleted: (args: { entityKey: Hex, }) => void,
-    onError?: ((error: Error) => void) | undefined,
-    pollingInterval?: number,
-    transport?: `http` | `websocket`
-  }): () => void
 }
 
-/**
- * Create a client to interact with GolemBase
- * @param chainId - The ID of the chain you are connecting to
- * @param accountData - Either a private key or a wallet provider for the user's account
- * @param rpcUrl - JSON-RPC URL to talk to
- * @param wsUrl - WebSocket URL to talk to
- * @param logger - Optional logger instance to use for logging
- *
- * @returns A client object
- */
-export async function createClient(
-  chainId: number,
-  accountData: AccountData,
-  rpcUrl: string,
-  wsUrl: string,
-  logger: Logger<ILogObj> = new Logger<ILogObj>({
-    type: "hidden",
-    hideLogPositionForProduction: true,
-  })
-): Promise<GolemBaseClient> {
+function parseTransactionLogs(
+  log: Logger<ILogObj>,
+  logs: Log<bigint, number, false>[]
+): {
+  createEntitiesReceipts: CreateEntityReceipt[],
+  updateEntitiesReceipts: UpdateEntityReceipt[],
+  deleteEntitiesReceipts: DeleteEntityReceipt[],
+  extendEntitiesReceipts: ExtendEntityReceipt[],
+} {
+  return logs.reduce((receipts, txlog) => {
+    // The call to pad here is needed when running in the browser, but somehow
+    // not when running in node...
+    // Our geth node seems to correctly return a uint256.
+    // We pad to either 32 or 64 bytes (the longest data field in our ABI).
+    // TODO: investigate why this is needed
+    let paddedData
+    if (txlog.data.length > 2 && txlog.data.length < 34) {
+      paddedData = pad(txlog.data, { size: 32, dir: "left" })
+    } else if (txlog.data.length > 34 && txlog.data.length < 66) {
+      paddedData = pad(txlog.data, { size: 64, dir: "left" })
+    } else {
+      paddedData = txlog.data
+    }
+    log.debug("padded data:", paddedData)
+    const parsed = decodeEventLog({
+      abi: golemBaseABI,
+      data: paddedData,
+      topics: txlog.topics
+    })
+    switch (parsed.eventName) {
+      case "GolemBaseStorageEntityCreated": {
+        log.debug(parsed.args)
+        return {
+          ...receipts,
+          createEntitiesReceipts: receipts.createEntitiesReceipts.concat([{
+            entityKey: toHex(parsed.args.entityKey, { size: 32 }),
+            expirationBlock: Number(parsed.args.expirationBlock),
+          }]),
+        }
+      }
+      case "GolemBaseStorageEntityUpdated": {
+        return {
+          ...receipts,
+          updateEntitiesReceipts: receipts.updateEntitiesReceipts.concat([{
+            entityKey: toHex(parsed.args.entityKey, { size: 32 }),
+            expirationBlock: Number(parsed.args.expirationBlock),
+          }]),
+        }
+      }
+      case "GolemBaseStorageEntityBTLExtended": {
+        return {
+          ...receipts,
+          extendEntitiesReceipts: receipts.extendEntitiesReceipts.concat([{
+            entityKey: toHex(parsed.args.entityKey, { size: 32 }),
+            newExpirationBlock: Number(parsed.args.newExpirationBlock),
+            oldExpirationBlock: Number(parsed.args.oldExpirationBlock),
+          }]),
+        }
+      }
+      case "GolemBaseStorageEntityDeleted": {
+        return {
+          ...receipts,
+          deleteEntitiesReceipts: receipts.deleteEntitiesReceipts.concat([{
+            entityKey: toHex(parsed.args.entityKey, { size: 32 }),
+          }]),
+        }
+      }
+    }
+  },
+    {
+      createEntitiesReceipts: [] as CreateEntityReceipt[],
+      updateEntitiesReceipts: [] as UpdateEntityReceipt[],
+      deleteEntitiesReceipts: [] as DeleteEntityReceipt[],
+      extendEntitiesReceipts: [] as ExtendEntityReceipt[],
+    }
+  )
+}
 
-  const log = logger.getSubLogger({ name: "client" });
+function createGenericClient<Internal extends internal.GolemBaseROClient>(
+  client: Internal,
+  logger: Logger<ILogObj>
+): GenericClient<Internal> {
+  const log = logger.getSubLogger({ name: "generic client" });
 
-  const client = await internal.createClient(chainId, accountData, rpcUrl, wsUrl, log)
-
+  // Log the event hashes in case we need to debug event log parsing
   for (let value of golemBaseABI) {
     log.debug("Calculated the following event signature:", value.name, "->", toEventHash(value))
-  }
-
-  function parseTransactionLogs(logs: Log<bigint, number, false>[]): {
-    createEntitiesReceipts: CreateEntityReceipt[],
-    updateEntitiesReceipts: UpdateEntityReceipt[],
-    deleteEntitiesReceipts: DeleteEntityReceipt[],
-    extendEntitiesReceipts: ExtendEntityReceipt[],
-  } {
-    return logs.reduce((receipts, txlog) => {
-      // The call to pad here is needed when running in the browser, but somehow
-      // not when running in node...
-      // Our geth node seems to correctly return a uint256.
-      // We pad to either 32 or 64 bytes (the longest data field in our ABI).
-      // TODO: investigate why this is needed
-      let paddedData
-      if (txlog.data.length > 2 && txlog.data.length < 34) {
-        paddedData = pad(txlog.data, { size: 32, dir: "left" })
-      } else if (txlog.data.length > 34 && txlog.data.length < 66) {
-        paddedData = pad(txlog.data, { size: 64, dir: "left" })
-      } else {
-        paddedData = txlog.data
-      }
-      log.debug("padded data:", paddedData)
-      const parsed = decodeEventLog({
-        abi: golemBaseABI,
-        data: paddedData,
-        topics: txlog.topics
-      })
-      switch (parsed.eventName) {
-        case "GolemBaseStorageEntityCreated": {
-          log.debug(parsed.args)
-          return {
-            ...receipts,
-            createEntitiesReceipts: receipts.createEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey, { size: 32 }),
-              expirationBlock: Number(parsed.args.expirationBlock),
-            }]),
-          }
-        }
-        case "GolemBaseStorageEntityUpdated": {
-          return {
-            ...receipts,
-            updateEntitiesReceipts: receipts.updateEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey, { size: 32 }),
-              expirationBlock: Number(parsed.args.expirationBlock),
-            }]),
-          }
-        }
-        case "GolemBaseStorageEntityBTLExtended": {
-          return {
-            ...receipts,
-            extendEntitiesReceipts: receipts.extendEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey, { size: 32 }),
-              newExpirationBlock: Number(parsed.args.newExpirationBlock),
-              oldExpirationBlock: Number(parsed.args.oldExpirationBlock),
-            }]),
-          }
-        }
-        case "GolemBaseStorageEntityDeleted": {
-          return {
-            ...receipts,
-            deleteEntitiesReceipts: receipts.deleteEntitiesReceipts.concat([{
-              entityKey: toHex(parsed.args.entityKey, { size: 32 }),
-            }]),
-          }
-        }
-      }
-    },
-      {
-        createEntitiesReceipts: [] as CreateEntityReceipt[],
-        updateEntitiesReceipts: [] as UpdateEntityReceipt[],
-        deleteEntitiesReceipts: [] as DeleteEntityReceipt[],
-        extendEntitiesReceipts: [] as ExtendEntityReceipt[],
-      }
-    )
   }
 
   return {
@@ -349,10 +339,6 @@ export async function createClient(
 
     async getStorageValue(key: Hex): Promise<Uint8Array> {
       return client.httpClient.getStorageValue(key)
-    },
-
-    async getOwnerAddress(): Promise<Hex> {
-      return (await client.walletClient.getAddresses())[0]
     },
 
     async getEntityMetaData(key: Hex): Promise<EntityMetaData> {
@@ -382,6 +368,116 @@ export async function createClient(
       }))
     },
 
+    watchLogs(args: {
+      fromBlock: bigint,
+      onCreated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
+      onUpdated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
+      onExtended: (args: { entityKey: Hex, oldExpirationBlock: number, newExpirationBlock: number, }) => void,
+      onDeleted: (args: { entityKey: Hex, }) => void,
+      onError?: (error: Error) => void,
+      pollingInterval?: number,
+      transport?: `http` | `websocket`
+    }): () => void {
+      let c
+      if (args.transport === "http") {
+        c = client.httpClient
+      } else {
+        c = client.wsClient
+      }
+
+      const unsubscribe = c.watchEvent({
+        address: internal.storageAddress,
+        fromBlock: args.fromBlock,
+        events: golemBaseABI,
+        onLogs: logs => {
+          log.debug("watchLogs, got logs: ", logs)
+          const {
+            createEntitiesReceipts,
+            updateEntitiesReceipts,
+            deleteEntitiesReceipts,
+            extendEntitiesReceipts,
+          } = parseTransactionLogs(log, logs)
+
+          createEntitiesReceipts.forEach(args.onCreated)
+          updateEntitiesReceipts.forEach(args.onUpdated)
+          deleteEntitiesReceipts.forEach(args.onDeleted)
+          extendEntitiesReceipts.forEach(args.onExtended)
+        },
+        onError: args.onError,
+        pollingInterval: args.pollingInterval,
+      })
+
+      return unsubscribe
+    }
+  }
+}
+
+/**
+ * Create a read-only client to interact with GolemBase
+ * @param chainId - The ID of the chain you are connecting to
+ * @param rpcUrl - JSON-RPC URL to talk to
+ * @param wsUrl - WebSocket URL to talk to
+ * @param logger - Optional logger instance to use for logging
+ *
+ * @returns A read-only client object
+ */
+export function createROClient(
+  chainId: number,
+  rpcUrl: string,
+  wsUrl: string,
+  logger: Logger<ILogObj> = new Logger<ILogObj>({
+    type: "hidden",
+    hideLogPositionForProduction: true,
+  })
+): GolemBaseROClient {
+  const iClient = internal.createROClient(chainId, rpcUrl, wsUrl, logger)
+  const baseClient = createGenericClient(iClient, logger)
+
+  return {
+    ...baseClient,
+    getRawClient(): internal.GolemBaseROClient {
+      return iClient
+    },
+  }
+}
+
+/**
+ * Create a client to interact with GolemBase
+ * @param chainId - The ID of the chain you are connecting to
+ * @param accountData - Either a private key or a wallet provider for the user's account
+ * @param rpcUrl - JSON-RPC URL to talk to
+ * @param wsUrl - WebSocket URL to talk to
+ * @param logger - Optional logger instance to use for logging
+ *
+ * @returns A client object
+ */
+export async function createClient(
+  chainId: number,
+  accountData: AccountData,
+  rpcUrl: string,
+  wsUrl: string,
+  logger: Logger<ILogObj> = new Logger<ILogObj>({
+    type: "hidden",
+    hideLogPositionForProduction: true,
+  })
+): Promise<GolemBaseClient> {
+
+  const iClient = await internal.createClient(chainId, accountData, rpcUrl, wsUrl, logger)
+  const baseClient = createGenericClient(iClient, logger)
+
+  const log = logger.getSubLogger({ name: "client" })
+
+  return {
+    ...baseClient,
+
+    getRawClient() {
+      return iClient
+    },
+
+    async getOwnerAddress(): Promise<Hex> {
+      return (await iClient.walletClient.getAddresses())[0]
+    },
+
     async sendTransaction(
       this: GolemBaseClient,
       creates: GolemBaseCreate[] = [],
@@ -400,12 +496,12 @@ export async function createClient(
       deleteEntitiesReceipts: DeleteEntityReceipt[],
       extendEntitiesReceipts: ExtendEntityReceipt[],
     }> {
-      const receipt = await client.walletClient.sendGolemBaseTransactionAndWaitForReceipt(
+      const receipt = await iClient.walletClient.sendGolemBaseTransactionAndWaitForReceipt(
         creates, updates, deletes, extensions, args
       )
       log.debug("Got receipt:", receipt)
 
-      const out = parseTransactionLogs(receipt.logs)
+      const out = parseTransactionLogs(log, receipt.logs)
       log.debug("parsed transaction log:", out)
       return out
     },
@@ -469,47 +565,5 @@ export async function createClient(
         [], [], [], extensions, args
       )).extendEntitiesReceipts
     },
-
-    watchLogs(args: {
-      fromBlock: bigint,
-      onCreated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
-      onUpdated: (args: { entityKey: Hex, expirationBlock: number, }) => void,
-      onExtended: (args: { entityKey: Hex, oldExpirationBlock: number, newExpirationBlock: number, }) => void,
-      onDeleted: (args: { entityKey: Hex, }) => void,
-      onError?: (error: Error) => void,
-      pollingInterval?: number,
-      transport?: `http` | `websocket`
-    }): () => void {
-      let c
-      if (args.transport === "http") {
-        c = client.httpClient
-      } else {
-        c = client.wsClient
-      }
-
-      const unsubscribe = c.watchEvent({
-        address: internal.storageAddress,
-        fromBlock: args.fromBlock,
-        events: golemBaseABI,
-        onLogs: logs => {
-          log.debug("watchLogs, got logs: ", logs)
-          const {
-            createEntitiesReceipts,
-            updateEntitiesReceipts,
-            deleteEntitiesReceipts,
-            extendEntitiesReceipts,
-          } = parseTransactionLogs(logs)
-
-          createEntitiesReceipts.forEach(args.onCreated)
-          updateEntitiesReceipts.forEach(args.onUpdated)
-          deleteEntitiesReceipts.forEach(args.onDeleted)
-          extendEntitiesReceipts.forEach(args.onExtended)
-        },
-        onError: args.onError,
-        pollingInterval: args.pollingInterval,
-      })
-
-      return unsubscribe
-    }
   }
 }
