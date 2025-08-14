@@ -8,6 +8,7 @@ import {
   Logger
 } from "tslog"
 import xdg from "xdg-portable"
+import { Wallet, utils } from "ethers"
 import {
   internal,
   type GolemBaseCreate,
@@ -61,7 +62,14 @@ async function ownerAddress(client: internal.GolemBaseClient): Promise<Hex> {
   return (await client.walletClient.getAddresses())[0]
 }
 
-const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
+// Path to a golembase wallet
+const walletPath = path.join(xdg.config(), 'golembase', 'wallet.json');
+// The password that the test wallet was encrypted with
+const walletTestPassword = "password";
+
+const keystore = fs.readFileSync(walletPath);
+const wallet = Wallet.fromEncryptedJsonSync(keystore, walletTestPassword);
+
 let client: GolemBaseClient
 
 const data = generateRandomBytes(32)
@@ -73,7 +81,7 @@ let expirationBlock: number
 
 describe("the internal golem-base client", () => {
   it("can be created", async () => {
-    const key: AccountData = new Tagged("privatekey", keyBytes)
+    const key: AccountData = new Tagged("privatekey", utils.arrayify(wallet.privateKey))
     client = {
       local: await internal.createClient(
         1337,
