@@ -45,8 +45,8 @@ jobs:
 
       - name: Create and fund an account
         run: |
-          go run ./cmd/golembase account create
-          go run ./cmd/golembase account fund
+          printf "password" | go run ./cmd/golembase account create
+          printf "password" | go run ./cmd/golembase account fund
         working-directory: ./gb-op-geth
 
       - name: Run tests
