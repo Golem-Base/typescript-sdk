@@ -1,4 +1,5 @@
-import * as fs from 'fs'
+import { readFileSync } from "fs"
+import { join } from "path"
 import {
   expect
 } from "chai"
@@ -8,6 +9,7 @@ import {
   Logger
 } from "tslog"
 import xdg from "xdg-portable"
+import { Wallet, getBytes } from "ethers"
 import {
   createClient,
   type GolemBaseClient,
@@ -28,7 +30,12 @@ const log = new Logger<ILogObj>({
   minLevel: 3,
 })
 
-const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
+// Path to a golembase wallet
+const walletPath = join(xdg.config(), 'golembase', 'wallet.json');
+// The password that the test wallet was encrypted with
+const walletTestPassword = "password";
+const keystore = readFileSync(walletPath, 'utf8');
+const wallet = Wallet.fromEncryptedJsonSync(keystore, walletTestPassword);
 
 let entitiesOwnedCount = 0
 let entityKey: Hex = "0x"
@@ -37,7 +44,7 @@ let client: GolemBaseClient
 
 describe("the golem-base client", () => {
   it("can be created", async () => {
-    const key: AccountData = new Tagged("privatekey", keyBytes)
+    const key: AccountData = new Tagged("privatekey", getBytes(wallet.privateKey))
     client = {
       local: await createClient(
         1337,

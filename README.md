@@ -20,7 +20,7 @@ The repo also contains an example application to showcase how you can use this S
 
 (Note: As an alternative to installing the demo CLI, you can build the [actual CLI](https://github.com/Golem-Base/golembase-op-geth/blob/main/cmd/golembase/README.md) as it's included in the golembase-op-geth repo.)
 
-When you create a user, it will generate a private key file called `private.key` and store it in:
+When you create a user, it will generate an encrypted keystore file with a password you provide called `wallet.json` and store it in:
 
 - `~/.config/golembase/` on **Linux**
 - `~/Library/Application Support/golembase/` on **macOS**
@@ -126,7 +126,7 @@ This is a basic TypeScript application that:
     * `type GolemBaseCreate`: A type representing a create transaction in GolemBase
     * `Annotation`: A type representing an annotation with a key and a value, used for efficient lookups
 
-2. Reads the private key, which it locates through the `xdg-portable` module.
+2. Reads the private key from a wallet, which it locates through the `xdg-portable` module.
 
 3. Create a logger using the `tslog` TypeScript Logger
 

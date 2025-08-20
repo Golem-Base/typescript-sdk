@@ -1,9 +1,13 @@
-import * as fs from "fs"
+import { readFileSync } from "fs"
+import { join } from "path"
+import { stdin, stdout } from "process"
+import { createInterface } from "readline";
 import {
   type ILogObj,
   Logger
 } from "tslog"
 import xdg from "xdg-portable"
+import { Wallet, getBytes } from "ethers"
 import {
   createClient,
   formatEther,
@@ -13,7 +17,39 @@ import {
   type AccountData,
 } from "golem-base-sdk"
 
-const keyBytes = fs.readFileSync(xdg.config() + '/golembase/private.key');
+// Path to a golembase wallet
+const walletPath = join(xdg.config(), 'golembase', 'wallet.json');
+const keystore = readFileSync(walletPath, 'utf8');
+
+/**
+ * Read password either from piped stdin or interactively from the terminal.
+ */
+async function readPassword(prompt: string = "Enter wallet password: "): Promise<string> {
+  if (stdin.isTTY) {
+    // Interactive prompt
+    const rl = createInterface({
+      input: stdin,
+      output: stdout,
+      terminal: true,
+    });
+
+    return new Promise((resolve) => {
+      rl.question(prompt, (password) => {
+        rl.close();
+        resolve(password.trim());
+      });
+      // Hide input for security
+      (rl as any)._writeToOutput = () => {};
+    });
+  } else {
+    // Input is piped
+    const chunks: Buffer[] = [];
+    for await (const chunk of stdin) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks).toString().trim();
+  }
+}
 
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
@@ -35,7 +71,11 @@ async function asyncFilter<T>(arr: T[], callback: (item: T) => Promise<boolean>)
 };
 
 async function main() {
-  const key: AccountData = new Tagged("privatekey", keyBytes)
+  log.info("Attempting to decrypt wallet", walletPath);
+  const wallet = Wallet.fromEncryptedJsonSync(keystore, await readPassword());
+  log.info("Successfully decrypted wallet for account", wallet.address);
+
+  const key: AccountData = new Tagged("privatekey", getBytes(wallet.privateKey))
   const client = {
     local: await createClient(
       1337,
