@@ -11,7 +11,7 @@ import { Wallet, getBytes } from "ethers"
 import {
   createClient,
   formatEther,
-  type GolemBaseCreate,
+  type GolemDBCreate,
   Annotation,
   Tagged,
   type AccountData,
@@ -39,7 +39,7 @@ async function readPassword(prompt: string = "Enter wallet password: "): Promise
         resolve(password.trim());
       });
       // Hide input for security
-      (rl as any)._writeToOutput = () => {};
+      (rl as any)._writeToOutput = () => { };
     });
   } else {
     // Input is piped
@@ -135,7 +135,7 @@ async function main() {
   log.info("*********************")
   log.info("")
 
-  const creates: GolemBaseCreate[] = [
+  const creates: GolemDBCreate[] = [
     {
       data: encoder.encode("foo"),
       btl: 25,
