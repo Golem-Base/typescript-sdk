@@ -1,12 +1,12 @@
-# 🚀 Golem Base
+# 🚀 GolemDB
 
-This is part of the [Golem Base](https://github.com/Golem-Base) project, which is which is designed as a Layer2 Network deployed on Ethereum, acting as a gateway to various Layer 3 Database Chains (DB-Chains).
+This is part of the [GolemDB](https://github.com/Golem-Base) project, which is which is designed as a Layer2 Network deployed on Ethereum, acting as a gateway to various Layer 3 Database Chains (DB-Chains).
 
-> **For an overview of Golem Base, check out our [Litepaper](https://golem-base.io/wp-content/uploads/2025/03/GolemBase-Litepaper.pdf).**
+> **For an overview of GolemDB, check out our [Litepaper](https://golem-base.io/wp-content/uploads/2025/03/GolemDB-Litepaper.pdf).**
 
-# 🌌GolemBase SDK for TypeScript
+# 🌌GolemDB SDK for TypeScript
 
-This SDK allows you to use [GolemBase](https://github.com/Golem-Base) from TypeScript. It is available [on NPM](https://www.npmjs.com/package/golem-base-sdk).
+This SDK allows you to use [GolemDB](https://github.com/Golem-Base) from TypeScript. It is available [on NPM](https://www.npmjs.com/package/golemdb-sdk).
 
 We also publish [generated documentation](https://golem-base.github.io/typescript-sdk/).
 
@@ -58,7 +58,7 @@ npm install --save-dev typescript
 And now add the golem TypeScript SDK to your package by typing:
 
 ```
-npm i golem-base-sdk
+npm i golemdb-sdk
 ```
 
 Now update your package.json file, changing the `type` member to `"type": "module",` and adding the two script lines for `build` and `start`. (Be sure to add a comma after the first script line called test. Also, you can leave the `name` member set to whatever it is. And the order of the members doesn't matter.)
@@ -82,7 +82,7 @@ Now update your package.json file, changing the `type` member to `"type": "modul
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "golem-base-sdk": "^0.1.8"
+    "golemdb-sdk": "^0.1.8"
   }
 }
 
@@ -121,9 +121,9 @@ This is a basic TypeScript application that:
 
 1. Imports several items from the SDK (called "golem-base-sdk") including:
 
-    * `createClient`: A function that creates a client to interact with GolemBase
-    * `type GolemBaseClient`: A type that represents the base client for interacting with Golem
-    * `type GolemBaseCreate`: A type representing a create transaction in GolemBase
+    * `createClient`: A function that creates a client to interact with GolemDB
+    * `type GolemDBClient`: A type that represents the base client for interacting with Golem
+    * `type GolemDBCreate`: A type representing a create transaction in GolemDB
     * `Annotation`: A type representing an annotation with a key and a value, used for efficient lookups
 
 2. Reads the private key from a wallet, which it locates through the `xdg-portable` module.
@@ -144,7 +144,7 @@ The `main` function demonstrates how to create, modify, and delete entities:
     * One with data `"bar"` and a time to live of `2`, and a numeric annotation of `2`
     * One with data `"qux"` and a time to live of `50`, and a numeric annotation also of `2`
 
-    Notice that the type of each is GolemBaseCreate.
+    Notice that the type of each is GolemDBCreate.
 
 4. It then calls client.createEntities to create the entities within Golem. Notice that this returns a promise of an array of items, each of which contain an `entityKey` and an `expirationBlock`.
 

@@ -15,7 +15,7 @@ import {
   Annotation,
   Tagged,
   type AccountData,
-} from "golem-base-sdk"
+} from "golemdb-sdk"
 
 // Path to a golembase wallet
 const walletPath = join(xdg.config(), 'golembase', 'wallet.json');
