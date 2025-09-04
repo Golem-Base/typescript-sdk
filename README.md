@@ -8,6 +8,10 @@ This is part of the [Golem Base](https://github.com/Golem-Base) project, which i
 
 This SDK allows you to use [GolemBase](https://github.com/Golem-Base) from TypeScript. It is available [on NPM](https://www.npmjs.com/package/golem-base-sdk).
 
+**Find the [API documentation here](https://golem-base.github.io/documentation/typescript/api/api/).**
+
+**Need a quickstart guide? [We have one here](https://golem-base.github.io/documentation/overview/quickstart_ts/).**
+
 We also publish [generated documentation](https://golem-base.github.io/typescript-sdk/).
 
 The repo also contains an example application to showcase how you can use this SDK.
