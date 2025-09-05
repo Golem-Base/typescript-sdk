@@ -63,18 +63,18 @@ export type AccountData =
 export type Hex = `0x${string}`
 
 /**
- * Type representing a create transaction in GolemBase
+ * Type representing a create transaction in GolemDB
  */
-export type GolemBaseCreate = {
+export type GolemDBCreate = {
   readonly data: Uint8Array,
   readonly btl: number,
   readonly stringAnnotations: StringAnnotation[]
   readonly numericAnnotations: NumericAnnotation[],
 }
 /**
- * Type representing an update transaction in GolemBase
+ * Type representing an update transaction in GolemDB
  */
-export type GolemBaseUpdate = {
+export type GolemDBUpdate = {
   readonly entityKey: Hex,
   readonly data: Uint8Array,
   readonly btl: number,
@@ -82,24 +82,24 @@ export type GolemBaseUpdate = {
   readonly numericAnnotations: NumericAnnotation[],
 }
 /**
- * Type representing an extend transaction in GolemBase
+ * Type representing an extend transaction in GolemDB
  */
-export type GolemBaseExtend = {
+export type GolemDBExtend = {
   readonly entityKey: Hex,
   readonly numberOfBlocks: number,
 }
 /**
- * Type representing a delete transaction in GolemBase
+ * Type representing a delete transaction in GolemDB
  */
-export type GolemBaseTransaction = {
-  readonly creates?: GolemBaseCreate[],
-  readonly updates?: GolemBaseUpdate[],
+export type GolemDBTransaction = {
+  readonly creates?: GolemDBCreate[],
+  readonly updates?: GolemDBUpdate[],
   readonly deletes?: Hex[],
-  readonly extensions?: GolemBaseExtend[],
+  readonly extensions?: GolemDBExtend[],
 }
 
 /**
- * Type representing the metadata of a entity stored in GolemBase
+ * Type representing the metadata of a entity stored in GolemDB
  */
 export type EntityMetaData = {
   readonly expiresAtBlock: bigint,

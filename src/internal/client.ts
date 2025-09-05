@@ -33,11 +33,11 @@ import {
 
 import {
   type Hex,
-  type GolemBaseCreate,
-  type GolemBaseUpdate,
-  type GolemBaseTransaction,
+  type GolemDBCreate,
+  type GolemDBUpdate,
+  type GolemDBTransaction,
   type EntityMetaData,
-  type GolemBaseExtend,
+  type GolemDBExtend,
   type AccountData,
 } from ".."
 import { SmartAccount } from 'viem/_types/account-abstraction/accounts/types';
@@ -100,7 +100,7 @@ type GolemQueryEntitiesSchema = {
   ReturnType: [GolemQueryEntitiesReturnType]
 }
 
-export type GolemBaseActions = {
+export type GolemDBActions = {
   getStorageValue(args: GolemGetStorageValueInputParams): Promise<Uint8Array>
   getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<EntityMetaData>
   /**
@@ -113,7 +113,7 @@ export type GolemBaseActions = {
   queryEntities(args: GolemQueryEntitiesInputParams): Promise<{ key: Hex, value: Uint8Array, }[]>
 }
 
-export type GolemBaseWalletActions = {
+export type GolemDBWalletActions = {
   createRawStorageTransaction(
     payload: Hex,
     gas: bigint | undefined,
@@ -121,21 +121,21 @@ export type GolemBaseWalletActions = {
     maxPriorityFeePerGas: bigint | undefined,
   ): Promise<Hex>
 
-  sendGolemBaseTransaction(
-    creates?: GolemBaseCreate[],
-    updates?: GolemBaseUpdate[],
+  sendGolemDBTransaction(
+    creates?: GolemDBCreate[],
+    updates?: GolemDBUpdate[],
     deletes?: Hex[],
-    extensions?: GolemBaseExtend[],
+    extensions?: GolemDBExtend[],
     gas?: bigint,
     maxFeePerGas?: bigint,
     maxPriorityFeePerGas?: bigint,
   ): Promise<Hex>
 
-  sendGolemBaseTransactionAndWaitForReceipt(
-    creates?: GolemBaseCreate[],
-    updates?: GolemBaseUpdate[],
+  sendGolemDBTransactionAndWaitForReceipt(
+    creates?: GolemDBCreate[],
+    updates?: GolemDBUpdate[],
     deletes?: Hex[],
-    extensions?: GolemBaseExtend[],
+    extensions?: GolemDBExtend[],
     args?: {
       gas?: bigint,
       maxFeePerGas?: bigint,
@@ -150,15 +150,15 @@ export type AllActions<
 > =
   PublicActions<transport, Chain, Account> &
   WalletActions<Chain, Account> &
-  GolemBaseActions
+  GolemDBActions
 
-export interface GolemBaseROClient {
+export interface GolemDBROClient {
   httpClient: Client<
     HttpTransport,
     Chain,
     Account | undefined,
     RpcSchema,
-    PublicActions<HttpTransport, Chain, Account | undefined> & GolemBaseActions
+    PublicActions<HttpTransport, Chain, Account | undefined> & GolemDBActions
   >
 
   wsClient: Client<
@@ -170,7 +170,7 @@ export interface GolemBaseROClient {
   >
 }
 
-export interface GolemBaseClient extends GolemBaseROClient {
+export interface GolemDBClient extends GolemDBROClient {
   walletClient: Client<
     HttpTransport | CustomTransport,
     Chain,
@@ -178,7 +178,7 @@ export interface GolemBaseClient extends GolemBaseROClient {
     RpcSchema,
     WalletActions<Chain, Account> & PublicActions<HttpTransport | CustomTransport,
       Chain,
-      Account> & GolemBaseWalletActions
+      Account> & GolemDBWalletActions
   >
 }
 
@@ -187,7 +187,7 @@ function mkHttpClient(rpcUrl: string, chain: Chain): Client<
   Chain,
   Account | undefined,
   RpcSchema,
-  PublicActions<HttpTransport, Chain, Account | undefined> & GolemBaseActions
+  PublicActions<HttpTransport, Chain, Account | undefined> & GolemDBActions
 > {
   return createPublicClient<HttpTransport, Chain, Account | undefined>({
     chain,
@@ -271,7 +271,7 @@ async function mkWalletClient(
   RpcSchema,
   WalletActions<Chain, Account> & PublicActions<HttpTransport | CustomTransport,
     Chain,
-    Account> & GolemBaseWalletActions>> {
+    Account> & GolemDBWalletActions>> {
   const defaultMaxFeePerGas = undefined
   const defaultMaxPriorityFeePerGas = undefined
 
@@ -297,7 +297,7 @@ async function mkWalletClient(
     })
   }
 
-  function createPayload(tx: GolemBaseTransaction): Hex {
+  function createPayload(tx: GolemDBTransaction): Hex {
     function formatAnnotation<
       T extends string | number | bigint | boolean
     >(annotation: { key: string, value: T, }): [Hex, Hex] {
@@ -363,11 +363,11 @@ async function mkWalletClient(
       return hash
     },
 
-    async sendGolemBaseTransaction(
-      creates: GolemBaseCreate[] = [],
-      updates: GolemBaseUpdate[] = [],
+    async sendGolemDBTransaction(
+      creates: GolemDBCreate[] = [],
+      updates: GolemDBUpdate[] = [],
       deletes: Hex[] = [],
-      extensions: GolemBaseExtend[] = [],
+      extensions: GolemDBExtend[] = [],
       gas: bigint | undefined,
       maxFeePerGas: bigint | undefined = defaultMaxFeePerGas,
       maxPriorityFeePerGas: bigint | undefined = defaultMaxPriorityFeePerGas,
@@ -380,11 +380,11 @@ async function mkWalletClient(
       )
     },
 
-    async sendGolemBaseTransactionAndWaitForReceipt(
-      creates: GolemBaseCreate[] = [],
-      updates: GolemBaseUpdate[] = [],
+    async sendGolemDBTransactionAndWaitForReceipt(
+      creates: GolemDBCreate[] = [],
+      updates: GolemDBUpdate[] = [],
       deletes: Hex[] = [],
-      extensions: GolemBaseExtend[] = [],
+      extensions: GolemDBExtend[] = [],
       args: {
         gas?: bigint,
         maxFeePerGas?: bigint,
@@ -426,7 +426,7 @@ async function mkWalletClient(
   }))
 }
 
-function createGolemBaseChain(
+function createGolemDBChain(
   chainId: number,
   rpcUrl: string,
   wsUrl: string,
@@ -449,7 +449,7 @@ function createGolemBaseChain(
 }
 
 /**
- * Create a read-only client to interact with GolemBase
+ * Create a read-only client to interact with GolemDB
  * @param rpcUrl - JSON-RPC URL to talk to
  * @param wsUrl - WebSocket URL to talk to
  * @param logger - Optional logger instance to use for logging
@@ -464,10 +464,10 @@ export function createROClient(
     type: "hidden",
     hideLogPositionForProduction: true,
   })
-): GolemBaseROClient {
+): GolemDBROClient {
   const log = logger.getSubLogger({ name: "internal" });
 
-  const chain = createGolemBaseChain(
+  const chain = createGolemDBChain(
     chainId, rpcUrl, wsUrl
   )
 
@@ -484,7 +484,7 @@ export function createROClient(
 }
 
 /**
- * Create a client to interact with GolemBase
+ * Create a client to interact with GolemDB
  * @param accountData - Either a private key or a wallet provider for the user's account
  * @param rpcUrl - JSON-RPC URL to talk to
  * @param wsUrl - WebSocket URL to talk to
@@ -501,10 +501,10 @@ export async function createClient(
     type: "hidden",
     hideLogPositionForProduction: true,
   })
-): Promise<GolemBaseClient> {
+): Promise<GolemDBClient> {
   const log = logger.getSubLogger({ name: "internal" });
 
-  const chain = createGolemBaseChain(
+  const chain = createGolemDBChain(
     chainId, rpcUrl, wsUrl
   )
 

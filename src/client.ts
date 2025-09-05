@@ -6,9 +6,9 @@ import {
 
 import {
   type Hex,
-  type GolemBaseCreate,
-  type GolemBaseUpdate,
-  type GolemBaseExtend,
+  type GolemDBCreate,
+  type GolemDBUpdate,
+  type GolemDBExtend,
   type EntityMetaData,
   type AccountData,
   golemBaseABI,
@@ -52,17 +52,17 @@ interface GenericClient<Internal> {
   getRawClient(): Internal
 
   /**
-   * Get the total count of entities in GolemBase
+   * Get the total count of entities in GolemDB
    */
   getEntityCount(): Promise<number>
 
   /**
-   * Get the entity keys of all entities in GolemBase
+   * Get the entity keys of all entities in GolemDB
    */
   getAllEntityKeys(): Promise<Hex[]>
 
   /**
-   * Get the entity keys of all entities in GolemBase owned by the given address
+   * Get the entity keys of all entities in GolemDB owned by the given address
    *
    * @returns Array of the entity keys
    */
@@ -78,7 +78,7 @@ interface GenericClient<Internal> {
   getStorageValue(key: Hex): Promise<Uint8Array>
 
   /**
-   * Query entities in GolemBase based on annotations
+   * Query entities in GolemDB based on annotations
    *
    * @param query - The query to look up entities with
    *
@@ -105,7 +105,7 @@ interface GenericClient<Internal> {
   getEntityMetaData(key: Hex): Promise<EntityMetaData>
 
   /**
-   * Install callbacks that will be invoked for every GolemBase transaction
+   * Install callbacks that will be invoked for every GolemDB transaction
    *
    * @param args.fromBlock - The starting block, events trigger the callbacks starting from this block
    * @param args.onCreated - A callback that's invoked whenever entities are created
@@ -131,9 +131,9 @@ interface GenericClient<Internal> {
   }): () => void
 }
 
-export interface GolemBaseROClient extends GenericClient<internal.GolemBaseROClient> { }
+export interface GolemDBROClient extends GenericClient<internal.GolemDBROClient> { }
 
-export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient> {
+export interface GolemDBClient extends GenericClient<internal.GolemDBClient> {
   /**
    * Get the ethereum address of the owner of the ethereum account used by this client
    */
@@ -149,10 +149,10 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
    * @param args.maxPriorityFeePerGas - Sets the max priority fee per gas manually
    */
   sendTransaction(
-    creates?: GolemBaseCreate[],
-    updates?: GolemBaseUpdate[],
+    creates?: GolemDBCreate[],
+    updates?: GolemDBUpdate[],
     deletes?: Hex[],
-    extensions?: GolemBaseExtend[],
+    extensions?: GolemDBExtend[],
     args?: {
       txHashCallback?: (txHash: Hex) => void,
       gas?: bigint,
@@ -167,7 +167,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   }>
 
   /**
-   * Create one or more new entities in GolemBase
+   * Create one or more new entities in GolemDB
    *
    * @param creates - The entities to create
    * @param args - Optional parameters, see {@link sendTransaction}
@@ -176,7 +176,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
    *         together with the number of the block at which they will expire
    */
   createEntities(
-    creates: GolemBaseCreate[],
+    creates: GolemDBCreate[],
     args?: {
       txHashCallback?: (txHash: Hex) => void,
       gas?: bigint,
@@ -186,7 +186,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<CreateEntityReceipt[]>
 
   /**
-   * Update one or more new entities in GolemBase
+   * Update one or more new entities in GolemDB
    *
    * @param updates - The entities to update
    * @param args - Optional parameters, see {@link sendTransaction}
@@ -195,7 +195,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
    *         together with the number of the block at which they will expire
    */
   updateEntities(
-    updates: GolemBaseUpdate[],
+    updates: GolemDBUpdate[],
     args?: {
       txHashCallback?: (txHash: Hex) => void,
       gas?: bigint,
@@ -205,7 +205,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<UpdateEntityReceipt[]>
 
   /**
-   * Delete one or more new entities in GolemBase
+   * Delete one or more new entities in GolemDB
    *
    * @param deletes - The entity keys of the entities to delete
    * @param args - Optional parameters, see {@link sendTransaction}
@@ -223,7 +223,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<DeleteEntityReceipt[]>
 
   /**
-   * Extend the BTL of one or more new entities in GolemBase
+   * Extend the BTL of one or more new entities in GolemDB
    *
    * @param extensions - The entities to extend the BTL of
    * @param args - Optional parameters, see {@link sendTransaction}
@@ -233,7 +233,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
    *         entities expire
    */
   extendEntities(
-    extensions: GolemBaseExtend[],
+    extensions: GolemDBExtend[],
     args?: {
       txHashCallback?: (txHash: Hex) => void,
       gas?: bigint,
@@ -321,7 +321,7 @@ function parseTransactionLogs(
   )
 }
 
-function createGenericClient<Internal extends internal.GolemBaseROClient>(
+function createGenericClient<Internal extends internal.GolemDBROClient>(
   client: Internal,
   logger: Logger<ILogObj>
 ): GenericClient<Internal> {
@@ -413,7 +413,7 @@ function createGenericClient<Internal extends internal.GolemBaseROClient>(
 }
 
 /**
- * Create a read-only client to interact with GolemBase
+ * Create a read-only client to interact with GolemDB
  * @param chainId - The ID of the chain you are connecting to
  * @param rpcUrl - JSON-RPC URL to talk to
  * @param wsUrl - WebSocket URL to talk to
@@ -429,20 +429,20 @@ export function createROClient(
     type: "hidden",
     hideLogPositionForProduction: true,
   })
-): GolemBaseROClient {
+): GolemDBROClient {
   const iClient = internal.createROClient(chainId, rpcUrl, wsUrl, logger)
   const baseClient = createGenericClient(iClient, logger)
 
   return {
     ...baseClient,
-    getRawClient(): internal.GolemBaseROClient {
+    getRawClient(): internal.GolemDBROClient {
       return iClient
     },
   }
 }
 
 /**
- * Create a client to interact with GolemBase
+ * Create a client to interact with GolemDB
  * @param chainId - The ID of the chain you are connecting to
  * @param accountData - Either a private key or a wallet provider for the user's account
  * @param rpcUrl - JSON-RPC URL to talk to
@@ -460,7 +460,7 @@ export async function createClient(
     type: "hidden",
     hideLogPositionForProduction: true,
   })
-): Promise<GolemBaseClient> {
+): Promise<GolemDBClient> {
 
   const iClient = await internal.createClient(chainId, accountData, rpcUrl, wsUrl, logger)
   const baseClient = createGenericClient(iClient, logger)
@@ -479,11 +479,11 @@ export async function createClient(
     },
 
     async sendTransaction(
-      this: GolemBaseClient,
-      creates: GolemBaseCreate[] = [],
-      updates: GolemBaseUpdate[] = [],
+      this: GolemDBClient,
+      creates: GolemDBCreate[] = [],
+      updates: GolemDBUpdate[] = [],
       deletes: Hex[] = [],
-      extensions: GolemBaseExtend[] = [],
+      extensions: GolemDBExtend[] = [],
       args: {
         txHashCallback?: (txHash: Hex) => void,
         gas?: bigint,
@@ -496,7 +496,7 @@ export async function createClient(
       deleteEntitiesReceipts: DeleteEntityReceipt[],
       extendEntitiesReceipts: ExtendEntityReceipt[],
     }> {
-      const receipt = await iClient.walletClient.sendGolemBaseTransactionAndWaitForReceipt(
+      const receipt = await iClient.walletClient.sendGolemDBTransactionAndWaitForReceipt(
         creates, updates, deletes, extensions, args
       )
       log.debug("Got receipt:", receipt)
@@ -507,8 +507,8 @@ export async function createClient(
     },
 
     async createEntities(
-      this: GolemBaseClient,
-      creates: GolemBaseCreate[],
+      this: GolemDBClient,
+      creates: GolemDBCreate[],
       args: {
         txHashCallback?: (txHash: Hex) => void,
         gas?: bigint,
@@ -522,8 +522,8 @@ export async function createClient(
     },
 
     async updateEntities(
-      this: GolemBaseClient,
-      updates: GolemBaseUpdate[],
+      this: GolemDBClient,
+      updates: GolemDBUpdate[],
       args: {
         txHashCallback?: (txHash: Hex) => void,
         gas?: bigint,
@@ -537,7 +537,7 @@ export async function createClient(
     },
 
     async deleteEntities(
-      this: GolemBaseClient,
+      this: GolemDBClient,
       deletes: Hex[],
       args: {
         txHashCallback?: (txHash: Hex) => void,
@@ -552,8 +552,8 @@ export async function createClient(
     },
 
     async extendEntities(
-      this: GolemBaseClient,
-      extensions: GolemBaseExtend[],
+      this: GolemDBClient,
+      extensions: GolemDBExtend[],
       args: {
         txHashCallback?: (txHash: Hex) => void,
         gas?: bigint,
