@@ -21,26 +21,57 @@ import {
   toHex,
 } from "viem";
 
+/**
+ * Receipt returned when successfully creating an entity in GolemBase
+ * @public
+ */
 export type CreateEntityReceipt = {
+  /** The unique hexadecimal key of the created entity */
   entityKey: Hex,
+  /** The block number at which this entity will expire */
   expirationBlock: number,
 }
 
+/**
+ * Receipt returned when successfully updating an entity in GolemBase
+ * @public
+ */
 export type UpdateEntityReceipt = {
+  /** The unique hexadecimal key of the updated entity */
   entityKey: Hex,
+  /** The new block number at which this entity will expire */
   expirationBlock: number,
 }
 
+/**
+ * Receipt returned when successfully deleting an entity in GolemBase
+ * @public
+ */
 export type DeleteEntityReceipt = {
+  /** The unique hexadecimal key of the deleted entity */
   entityKey: Hex
 }
 
+/**
+ * Receipt returned when successfully extending an entity's BTL (Block-to-Live) in GolemBase
+ * @public
+ */
 export type ExtendEntityReceipt = {
+  /** The unique hexadecimal key of the extended entity */
   entityKey: Hex,
+  /** The previous block number at which the entity would have expired */
   oldExpirationBlock: number,
+  /** The new block number at which the entity will expire */
   newExpirationBlock: number,
 }
 
+/**
+ * Generic interface for GolemBase clients providing core functionality for interacting
+ * with the Golem Base L2 network for decentralized data storage and management.
+ * 
+ * @template Internal - The type of the internal client implementation
+ * @public
+ */
 interface GenericClient<Internal> {
   /**
    * Get the internal client which exposes low-level methods and also gives
@@ -131,22 +162,89 @@ interface GenericClient<Internal> {
   }): () => void
 }
 
+/**
+ * Read-only client interface for GolemBase providing access to query operations
+ * without the ability to modify data on the blockchain.
+ * 
+ * Use this client when you only need to read data from GolemBase and don't require
+ * transaction capabilities.
+ * 
+ * @public
+ * @example
+ * ```typescript
+ * const roClient = createROClient(chainId, rpcUrl, wsUrl);
+ * const entityCount = await roClient.getEntityCount();
+ * const entities = await roClient.getAllEntityKeys();
+ * ```
+ */
 export interface GolemBaseROClient extends GenericClient<internal.GolemBaseROClient> { }
 
+/**
+ * Full client interface for GolemBase providing both read and write operations
+ * for interacting with the Golem Base L2 network.
+ * 
+ * This client can perform CRUD operations on entities, manage their BTL (Block-to-Live),
+ * and handle transactions on the blockchain.
+ * 
+ * @public
+ * @example
+ * ```typescript
+ * const client = await createClient(chainId, accountData, rpcUrl, wsUrl);
+ * 
+ * // Create entities with annotations
+ * const receipts = await client.createEntities([
+ *   {
+ *     data: new TextEncoder().encode("Hello, GolemBase!"),
+ *     btl: 1000,
+ *     stringAnnotations: [new Annotation("type", "message")],
+ *     numericAnnotations: []
+ *   }
+ * ]);
+ * ```
+ */
 export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient> {
   /**
-   * Get the ethereum address of the owner of the ethereum account used by this client
+   * Get the Ethereum address of the owner of the Ethereum account used by this client
+   * 
+   * @returns Promise that resolves to the hexadecimal Ethereum address
+   * @throws Will throw an error if the client is not properly configured with account data
+   * 
+   * @example
+   * ```typescript
+   * const client = await createClient(chainId, accountData, rpcUrl, wsUrl);
+   * const address = await client.getOwnerAddress();
+   * console.log('Account address:', address); // 0x742d35Cc9e1e3FbD...
+   * ```
    */
   getOwnerAddress(): Promise<Hex>
 
   /**
-   * @param creates - The list of create operations to include in this transaction
-   * @param updates - The list of update operations to include in this transaction
-   * @param deletes - The list of delete operations to include in this transaction
-   * @param extensions - The list of extend operations to include in this transaction
-   * @param args.txHashCallback - Callback to invoke with the transaction hash of the transaction
-   * @param args.maxFeePerGas - Sets the max fee per gas manually
-   * @param args.maxPriorityFeePerGas - Sets the max priority fee per gas manually
+   * Send a combined transaction to GolemBase that can include multiple operations:
+   * create, update, delete, and extend operations in a single atomic transaction.
+   * 
+   * @param creates - Array of create operations to include in this transaction
+   * @param updates - Array of update operations to include in this transaction  
+   * @param deletes - Array of entity keys to delete in this transaction
+   * @param extensions - Array of BTL extension operations to include in this transaction
+   * @param args - Optional transaction configuration
+   * @param args.txHashCallback - Callback function invoked with the transaction hash once submitted
+   * @param args.gas - Manual gas limit override for the transaction
+   * @param args.maxFeePerGas - Maximum fee per gas unit (EIP-1559)
+   * @param args.maxPriorityFeePerGas - Maximum priority fee per gas unit (EIP-1559)
+   * 
+   * @returns Promise resolving to receipts for all operations performed
+   * @throws Will throw an error if the transaction fails or is reverted
+   * 
+   * @example
+   * ```typescript
+   * const result = await client.sendTransaction(
+   *   [{ data: new TextEncoder().encode("create"), btl: 1000, stringAnnotations: [], numericAnnotations: [] }],
+   *   [{ entityKey: "0x123...", data: new TextEncoder().encode("update"), btl: 2000, stringAnnotations: [], numericAnnotations: [] }],
+   *   ["0x456..."],
+   *   [{ entityKey: "0x789...", numberOfBlocks: 500 }],
+   *   { txHashCallback: (hash) => console.log('TX Hash:', hash) }
+   * );
+   * ```
    */
   sendTransaction(
     creates?: GolemBaseCreate[],
@@ -167,13 +265,40 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   }>
 
   /**
-   * Create one or more new entities in GolemBase
+   * Create one or more new entities in GolemBase with specified data and annotations.
+   * 
+   * Each entity is stored with a configurable BTL (Block-to-Live) that determines when
+   * the entity will automatically expire and be removed from the network.
    *
-   * @param creates - The entities to create
-   * @param args - Optional parameters, see {@link sendTransaction}
+   * @param creates - Array of entity creation specifications
+   * @param args - Optional transaction parameters
+   * @param args.txHashCallback - Callback invoked with transaction hash when submitted
+   * @param args.gas - Manual gas limit override
+   * @param args.maxFeePerGas - Maximum fee per gas unit (EIP-1559)
+   * @param args.maxPriorityFeePerGas - Maximum priority fee per gas unit (EIP-1559)
    *
-   * @return An array of the entity keys of the entities that were created,
-   *         together with the number of the block at which they will expire
+   * @returns Promise resolving to an array of creation receipts with entity keys and expiration blocks
+   * @throws Will throw an error if the transaction fails or any entity creation fails
+   * 
+   * @example
+   * ```typescript
+   * const receipts = await client.createEntities([
+   *   {
+   *     data: new TextEncoder().encode(JSON.stringify({ message: "Hello World" })),
+   *     btl: 1000, // Entity expires in 1000 blocks
+   *     stringAnnotations: [
+   *       new Annotation("type", "greeting"),
+   *       new Annotation("version", "1.0")
+   *     ],
+   *     numericAnnotations: [
+   *       new Annotation("priority", 1)
+   *     ]
+   *   }
+   * ]);
+   * 
+   * console.log('Created entity:', receipts[0].entityKey);
+   * console.log('Expires at block:', receipts[0].expirationBlock);
+   * ```
    */
   createEntities(
     creates: GolemBaseCreate[],
@@ -186,13 +311,33 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<CreateEntityReceipt[]>
 
   /**
-   * Update one or more new entities in GolemBase
+   * Update one or more existing entities in GolemBase with new data and annotations.
+   * 
+   * Updates replace the entire entity content, including data and annotations.
+   * The BTL can also be modified to extend or reduce the entity's lifetime.
    *
-   * @param updates - The entities to update
-   * @param args - Optional parameters, see {@link sendTransaction}
+   * @param updates - Array of entity update specifications containing entity keys and new data
+   * @param args - Optional transaction parameters
+   * @param args.txHashCallback - Callback invoked with transaction hash when submitted
+   * @param args.gas - Manual gas limit override
+   * @param args.maxFeePerGas - Maximum fee per gas unit (EIP-1559)
+   * @param args.maxPriorityFeePerGas - Maximum priority fee per gas unit (EIP-1559)
    *
-   * @return An array of the entity keys of the entities that were updated,
-   *         together with the number of the block at which they will expire
+   * @returns Promise resolving to an array of update receipts with entity keys and new expiration blocks
+   * @throws Will throw an error if the transaction fails, entity doesn't exist, or caller lacks permission
+   * 
+   * @example
+   * ```typescript
+   * const receipts = await client.updateEntities([
+   *   {
+   *     entityKey: "0x1234567890abcdef...",
+   *     data: new TextEncoder().encode(JSON.stringify({ message: "Updated content" })),
+   *     btl: 2000, // Extend lifetime to 2000 blocks
+   *     stringAnnotations: [new Annotation("status", "updated")],
+   *     numericAnnotations: []
+   *   }
+   * ]);
+   * ```
    */
   updateEntities(
     updates: GolemBaseUpdate[],
@@ -205,12 +350,32 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<UpdateEntityReceipt[]>
 
   /**
-   * Delete one or more new entities in GolemBase
+   * Delete one or more entities from GolemBase permanently.
+   * 
+   * Only the entity owner can delete their entities. Deleted entities cannot be recovered
+   * and their storage is immediately freed on the network.
    *
-   * @param deletes - The entity keys of the entities to delete
-   * @param args - Optional parameters, see {@link sendTransaction}
+   * @param deletes - Array of hexadecimal entity keys to delete
+   * @param args - Optional transaction parameters
+   * @param args.txHashCallback - Callback invoked with transaction hash when submitted
+   * @param args.gas - Manual gas limit override
+   * @param args.maxFeePerGas - Maximum fee per gas unit (EIP-1559)
+   * @param args.maxPriorityFeePerGas - Maximum priority fee per gas unit (EIP-1559)
    *
-   * @return An array of the entity keys of the entities that were deleted
+   * @returns Promise resolving to an array of deletion receipts confirming which entities were deleted
+   * @throws Will throw an error if the transaction fails, entity doesn't exist, or caller lacks permission
+   * 
+   * @example
+   * ```typescript
+   * const receipts = await client.deleteEntities([
+   *   "0x1234567890abcdef...",
+   *   "0xfedcba0987654321..."
+   * ]);
+   * 
+   * receipts.forEach(receipt => {
+   *   console.log('Deleted entity:', receipt.entityKey);
+   * });
+   * ```
    */
   deleteEntities(
     deletes: Hex[],
@@ -223,14 +388,36 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<DeleteEntityReceipt[]>
 
   /**
-   * Extend the BTL of one or more new entities in GolemBase
+   * Extend the BTL (Block-to-Live) of one or more entities in GolemBase.
+   * 
+   * This operation increases the lifetime of entities by adding additional blocks
+   * to their expiration time, preventing them from being automatically deleted.
    *
-   * @param extensions - The entities to extend the BTL of
-   * @param args - Optional parameters, see {@link sendTransaction}
+   * @param extensions - Array of BTL extension specifications
+   * @param args - Optional transaction parameters
+   * @param args.txHashCallback - Callback invoked with transaction hash when submitted
+   * @param args.gas - Manual gas limit override
+   * @param args.maxFeePerGas - Maximum fee per gas unit (EIP-1559)
+   * @param args.maxPriorityFeePerGas - Maximum priority fee per gas unit (EIP-1559)
    *
-   * @return An array of the entity keys of the entities that had their BTL extended,
-   *         together with the numbers of the old and the new block at which the
-   *         entities expire
+   * @returns Promise resolving to an array of extension receipts with old and new expiration blocks
+   * @throws Will throw an error if the transaction fails, entity doesn't exist, or caller lacks permission
+   * 
+   * @example
+   * ```typescript
+   * const receipts = await client.extendEntities([
+   *   {
+   *     entityKey: "0x1234567890abcdef...",
+   *     numberOfBlocks: 500 // Add 500 more blocks to the entity's lifetime
+   *   }
+   * ]);
+   * 
+   * receipts.forEach(receipt => {
+   *   console.log(`Entity ${receipt.entityKey}:`);
+   *   console.log(`  Old expiration: block ${receipt.oldExpirationBlock}`);
+   *   console.log(`  New expiration: block ${receipt.newExpirationBlock}`);
+   * });
+   * ```
    */
   extendEntities(
     extensions: GolemBaseExtend[],
@@ -243,6 +430,18 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<ExtendEntityReceipt[]>
 }
 
+/**
+ * Parse transaction logs from GolemBase operations to extract receipts for different entity operations.
+ * 
+ * This internal function processes blockchain event logs and categorizes them into the appropriate
+ * operation types (create, update, delete, extend) based on the event signatures.
+ * 
+ * @param log - Logger instance for debugging transaction log parsing
+ * @param logs - Array of blockchain transaction logs to parse
+ * @returns Object containing arrays of receipts categorized by operation type
+ * 
+ * @internal
+ */
 function parseTransactionLogs(
   log: Logger<ILogObj>,
   logs: Log<bigint, number, false>[]
@@ -321,6 +520,21 @@ function parseTransactionLogs(
   )
 }
 
+/**
+ * Create a generic client wrapper that provides common functionality for both
+ * read-only and full GolemBase clients.
+ * 
+ * This factory function wraps the internal client with high-level methods that handle
+ * common operations like querying entities, watching blockchain events, and managing
+ * entity metadata.
+ * 
+ * @template Internal - Type of the internal client (read-only or full client)
+ * @param client - The internal client instance to wrap
+ * @param logger - Logger instance for debugging and monitoring operations
+ * @returns A generic client with common GolemBase functionality
+ * 
+ * @internal
+ */
 function createGenericClient<Internal extends internal.GolemBaseROClient>(
   client: Internal,
   logger: Logger<ILogObj>
