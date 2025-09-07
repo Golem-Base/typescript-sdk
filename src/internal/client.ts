@@ -40,11 +40,35 @@ import {
   type GolemBaseExtend,
   type AccountData,
 } from ".."
+
+export interface EntitySortOption {
+  field: 'annotationValue'
+  annotationKey: string
+  direction: 'asc' | 'desc'
+  nulls?: 'first' | 'last'
+}
+
+export interface EntityFilter {
+  sort?: EntitySortOption[]
+  limit?: number
+}
 import { SmartAccount } from 'viem/_types/account-abstraction/accounts/types';
 
 export { checksumAddress, toHex, TransactionReceipt }
 
 export const storageAddress = '0x0000000000000000000000000000000060138453'
+
+function getAnnotationValue(metadata: EntityMetaData, key: string): string | number | null {
+  for (const annotation of metadata.stringAnnotations || []) {
+    if (annotation.key === key) return annotation.value
+  }
+  
+  for (const annotation of metadata.numericAnnotations || []) {
+    if (annotation.key === key) return annotation.value
+  }
+  
+  return null
+}
 
 type GolemGetStorageValueInputParams = Hex
 type GolemGetStorageValueReturnType = string
@@ -108,7 +132,7 @@ export type GolemBaseActions = {
    */
   getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]>
   getEntityCount(): Promise<number>
-  getAllEntityKeys(): Promise<Hex[]>
+  getAllEntityKeys(filter?: EntityFilter): Promise<Hex[]>
   getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<Hex[]>
   queryEntities(args: GolemQueryEntitiesInputParams): Promise<{ key: Hex, value: Uint8Array, }[]>
 }
@@ -228,11 +252,48 @@ function mkHttpClient(rpcUrl: string, chain: Chain): Client<
         params: []
       })
     },
-    async getAllEntityKeys(): Promise<Hex[]> {
-      return await client.request<GolemGetAllEntityKeysSchema>({
+    async getAllEntityKeys(filter?: EntityFilter): Promise<Hex[]> {
+      const entityKeys = await client.request<GolemGetAllEntityKeysSchema>({
         method: 'golembase_getAllEntityKeys',
         params: []
       })
+      
+      if (filter?.sort?.length) {
+        try {
+          const entitiesWithMetadata = await Promise.all(
+            entityKeys.map(async (key: Hex) => ({
+              key,
+              metadata: await this.getEntityMetaData(key)
+            }))
+          )
+          
+          const sorted = entitiesWithMetadata.sort((a, b) => {
+            const sort = filter.sort![0]
+            const aValue = getAnnotationValue(a.metadata, sort.annotationKey)
+            const bValue = getAnnotationValue(b.metadata, sort.annotationKey)
+            
+            const nulls = sort.nulls ?? 'last'
+            if (aValue === null && bValue === null) return 0
+            if (aValue === null) return nulls === 'first' ? -1 : 1
+            if (bValue === null) return nulls === 'first' ? 1 : -1
+            
+            const result = aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+            return sort.direction === 'asc' ? result : -result
+          })
+          
+          let result = sorted.map(e => e.key)
+          
+          if (filter.limit) {
+            result = result.slice(0, filter.limit)
+          }
+          
+          return result
+        } catch (error) {
+          return entityKeys
+        }
+      }
+      
+      return entityKeys
     },
     async getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<Hex[]> {
       return client.request<GolemGetEntitiesOfOwnerSchema>({
