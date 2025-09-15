@@ -43,66 +43,63 @@ export type ExtendEntityReceipt = {
 
 interface GenericClient<Internal> {
   /**
-   * Get the internal client which exposes low-level methods and also gives
+   * Returns the raw internal client used under the hood.
+   * The internal client which exposes low-level methods and also gives
    * access to the raw viem.sh ethereum clients,
    * which allows to call low-level ethereum methods directly
    *
-   * @returns - A client object
+   * This includes low-level Ethereum client access (via viem.sh). This is considered an advanced feature. Use with caution if you need to make low-level Ethereum calls directly.
+   * @returns {Internal} The internal client object used by the SDK.
    */
+
   getRawClient(): Internal
 
   /**
-   * Get the total count of entities in GolemBase
+   * Returns the total number of entities stored in GolemBase.
+   * @returns A promise that resolves to the total count of entities.
    */
   getEntityCount(): Promise<number>
 
   /**
-   * Get the entity keys of all entities in GolemBase
+   * Returns all entity keys stored in GolemBase.
+   * @returns A promise that resolves to an array of entity keys (Hex[]).
    */
   getAllEntityKeys(): Promise<Hex[]>
 
   /**
-   * Get the entity keys of all entities in GolemBase owned by the given address
-   *
-   * @returns Array of the entity keys
+   * Retrieves all entity keys owned by a specific Ethereum address.
+   * @param address The address whose owned entities should be returned.
+   * @returns A promise that resolves to an array of entity keys owned by the address.
    */
-  getEntitiesOfOwner(address: Hex): Promise<Hex[]>
+   getEntitiesOfOwner(address: Hex): Promise<Hex[]>
 
   /**
-   * Get the storage value associated with the given entity key
-   *
-   * @param key - The key of the entity to look up
-   *
-   * @returns The base64-encoded value stored in the entity
+   * Returns the raw base64-encoded storage value associated with a given entity key.
+   * @param key The entity key to fetch the data for.
+   * @returns A Uint8Array containing the base64 encoded  value stored in the entity.
    */
-  getStorageValue(key: Hex): Promise<Uint8Array>
+   getStorageValue(key: Hex): Promise<Uint8Array>
 
   /**
-   * Query entities in GolemBase based on annotations
-   *
-   * @param query - The query to look up entities with
-   *
-   * @returns Array of the entities that matched the query
+   * Queries entities in GolemBase using annotations or metadata filters.
+   * @param query A query string in the GolemBase filter syntax.
+   * @returns A promise that resolves to an array of matching entity keys.
    */
-  queryEntities(query: string): Promise<{ entityKey: Hex, storageValue: Uint8Array }[]>
+   queryEntities(query: string): Promise<{ entityKey: Hex, storageValue: Uint8Array }[]>
 
   /**
-   * Get all entity keys for entities that will expire at the given block number
-   *
-   * @param blockNumber - The block number
-   *
-   * @returns An array of entities that expire at the given block
+   * Finds all entities that are scheduled to expire at a specific block.
+   * @param blockNumber The block number to check against.
+   * @returns A promise that resolves to an array of entity keys expiring at the given block.
    */
-  getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]>
+   getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]>
 
-  /**
-   * Get entity metadata
-   *
-   * @param key - The key of the entity to look up
-   *
-   * @returns The entity's metadata
+ /**
+   * Retrieves metadata for a given entity key.
+   * @param key The key to retrieve metadata for.
+   * @returns An EntityMetaData object with structured information about the entity.
    */
-  getEntityMetaData(key: Hex): Promise<EntityMetaData>
+   getEntityMetaData(key: Hex): Promise<EntityMetaData>
 
   /**
    * Install callbacks that will be invoked for every GolemBase transaction
@@ -133,21 +130,34 @@ interface GenericClient<Internal> {
 
 export interface GolemBaseROClient extends GenericClient<internal.GolemBaseROClient> { }
 
+/**
+ * The GolemBaseClient interface provides read-write access to a golem-base op-geth node.
+ *
+ * It allows you to query entities, fetch metadata, subscribe to events, and interact with annotations as well as create, update, delete, and extend entities.
+ * This interface extends the GolemBaseROClient interface, inheriting all its read-only methods.
+ */
 export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient> {
-  /**
-   * Get the ethereum address of the owner of the ethereum account used by this client
+   /**
+   * Get the Ethereum address of the account this client is authenticated with.
+   * @returns A promise that resolves to the address as a Hex string.
    */
+
   getOwnerAddress(): Promise<Hex>
 
   /**
+   * Submits a single transaction that may contain any combination of creates, updates, deletes, or extensions.
    * @param creates - The list of create operations to include in this transaction
    * @param updates - The list of update operations to include in this transaction
    * @param deletes - The list of delete operations to include in this transaction
    * @param extensions - The list of extend operations to include in this transaction
+   * @param args - Optional config object for the transaction.
    * @param args.txHashCallback - Callback to invoke with the transaction hash of the transaction
+   * @param args.gas - Override the gas limit.
    * @param args.maxFeePerGas - Sets the max fee per gas manually
    * @param args.maxPriorityFeePerGas - Sets the max priority fee per gas manually
+   * @returns A promise that resolves to an object with arrays of receipts for each type of operation.
    */
+
   sendTransaction(
     creates?: GolemBaseCreate[],
     updates?: GolemBaseUpdate[],
@@ -167,13 +177,10 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   }>
 
   /**
-   * Create one or more new entities in GolemBase
-   *
-   * @param creates - The entities to create
-   * @param args - Optional parameters, see {@link sendTransaction}
-   *
-   * @return An array of the entity keys of the entities that were created,
-   *         together with the number of the block at which they will expire
+   * Creates one or more new entities on the node.
+   * @param creates The entities to create.
+   * @param Optional configuration object, with the same structure as the `sendTransaction` method.
+   * @returns A promise that resolves to an array of `CreateEntityReceipt` objects, each including the new entity key and its expiration block.
    */
   createEntities(
     creates: GolemBaseCreate[],
@@ -186,13 +193,10 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<CreateEntityReceipt[]>
 
   /**
-   * Update one or more new entities in GolemBase
-   *
-   * @param updates - The entities to update
-   * @param args - Optional parameters, see {@link sendTransaction}
-   *
-   * @return An array of the entity keys of the entities that were updated,
-   *         together with the number of the block at which they will expire
+   * Updates one or more entities on the node.
+   * @param updates The entities to update.
+   * @param Optional configuration object, with the same structure as the `sendTransaction` method.
+   * @returns A promise that resolves to an array of `UpdateEntityReceipt` objects, each including the entity key and its new expiration block.
    */
   updateEntities(
     updates: GolemBaseUpdate[],
@@ -205,12 +209,10 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<UpdateEntityReceipt[]>
 
   /**
-   * Delete one or more new entities in GolemBase
-   *
-   * @param deletes - The entity keys of the entities to delete
-   * @param args - Optional parameters, see {@link sendTransaction}
-   *
-   * @return An array of the entity keys of the entities that were deleted
+   * Deletes one or more entities from the node.
+   * @param deletes The entity keys to delete.
+   * @param Optional configuration object, with the same structure as the `sendTransaction` method.
+   * @returns A promise that resolves to an array of `DeleteEntityReceipt` objects (usually just the deleted keys).
    */
   deleteEntities(
     deletes: Hex[],
@@ -223,15 +225,12 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<DeleteEntityReceipt[]>
 
   /**
-   * Extend the BTL of one or more new entities in GolemBase
-   *
-   * @param extensions - The entities to extend the BTL of
-   * @param args - Optional parameters, see {@link sendTransaction}
-   *
-   * @return An array of the entity keys of the entities that had their BTL extended,
-   *         together with the numbers of the old and the new block at which the
-   *         entities expire
+   * Extends the BTL (Block-To-Live) of one or more entities.
+   * @param {GolemBaseExtend[]} extensions The entities and new blocks to live.
+   * @param {object} [args] Optional configuration object, with the same structure as the `sendTransaction` method.
+   * @returns {Promise<ExtendEntityReceipt[]>} An array of `ExtendEntityReceipt` objects, each showing the old and new expiration blocks.
    */
+
   extendEntities(
     extensions: GolemBaseExtend[],
     args?: {
@@ -413,13 +412,15 @@ function createGenericClient<Internal extends internal.GolemBaseROClient>(
 }
 
 /**
- * Create a read-only client to interact with GolemBase
- * @param chainId - The ID of the chain you are connecting to
- * @param rpcUrl - JSON-RPC URL to talk to
- * @param wsUrl - WebSocket URL to talk to
- * @param logger - Optional logger instance to use for logging
+ * Creates a read-only client for querying a golem-base op-geth node.
  *
- * @returns A read-only client object
+ * This client can fetch metadata, search for keys, and inspect the current state, but cannot write to the blockchain.
+ *
+ * @param chainId The chain ID of the Ethereum-compatible network.
+ * @param rpcUrl The HTTP endpoint for RPC requests.
+ * @param wsUrl The WebSocket endpoint for listening to events.
+ * @param logger A logger instance. Defaults to a silent logger if omitted.
+ * @returns An instance of GolemBaseROClient.
  */
 export function createROClient(
   chainId: number,
@@ -442,14 +443,16 @@ export function createROClient(
 }
 
 /**
- * Create a client to interact with GolemBase
- * @param chainId - The ID of the chain you are connecting to
- * @param accountData - Either a private key or a wallet provider for the user's account
- * @param rpcUrl - JSON-RPC URL to talk to
- * @param wsUrl - WebSocket URL to talk to
- * @param logger - Optional logger instance to use for logging
+ * Creates a read-write client for a golem-base op-geth node. 
+ * This client supports all available operations, including writing
+ * new entities and fetching metadata.
+ * @param chainId The numeric chain ID of the Ethereum-compatible network you're connecting to.
+ * @param accountData An object containing the private key or account credentials for signing transactions.
+ * @param rpcUrl The HTTP endpoint of the golem-base op-geth node.
+ * @param wsUrl The WebSocket endpoint of the same node, used for event listening or subscriptions.
+ * @param logger A pino-like logger instance for structured logs. Defaults to a minimal hidden logger if not provided.
  *
- * @returns A client object
+ * @returns {Promise<GolemBaseClient>} A Promise that resolves to a GolemBaseClient instance.
  */
 export async function createClient(
   chainId: number,
