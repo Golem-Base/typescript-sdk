@@ -44,6 +44,13 @@ import { SmartAccount } from 'viem/_types/account-abstraction/accounts/types';
 
 export { checksumAddress, toHex, TransactionReceipt }
 
+/**
+ * The fixed Ethereum address of the GolemBase storage contract on the network.
+ * All entity operations (create, update, delete, extend) are performed by sending
+ * transactions to this address.
+ * 
+ * @public
+ */
 export const storageAddress = '0x0000000000000000000000000000000060138453'
 
 type GolemGetStorageValueInputParams = Hex
@@ -100,20 +107,44 @@ type GolemQueryEntitiesSchema = {
   ReturnType: [GolemQueryEntitiesReturnType]
 }
 
+/**
+ * Type definition for GolemBase read-only actions that can be performed
+ * through the JSON-RPC interface. These methods provide query capabilities
+ * for retrieving entity data and metadata.
+ * 
+ * @public
+ */
 export type GolemBaseActions = {
+  /** Retrieve the raw storage value (data) for a specific entity */
   getStorageValue(args: GolemGetStorageValueInputParams): Promise<Uint8Array>
+  /** Get complete metadata for an entity including annotations and expiration info */
   getEntityMetaData(args: GolemGetEntityMetaDataInputParams): Promise<EntityMetaData>
   /**
-   * Get all entity keys for entities that will expire at the given block number
+   * Get all entity keys for entities that will expire at the given block number.
+   * Useful for monitoring entities approaching their TTL expiration.
    */
   getEntitiesToExpireAtBlock(blockNumber: bigint): Promise<Hex[]>
+  /** Get the total count of entities currently stored in GolemBase */
   getEntityCount(): Promise<number>
+  /** Retrieve all entity keys currently stored in GolemBase */
   getAllEntityKeys(): Promise<Hex[]>
+  /** Get all entity keys owned by a specific Ethereum address */
   getEntitiesOfOwner(args: GolemGetEntitiesOfOwnerInputParams): Promise<Hex[]>
+  /** Query entities based on annotation criteria, returning matching keys and values */
   queryEntities(args: GolemQueryEntitiesInputParams): Promise<{ key: Hex, value: Uint8Array, }[]>
 }
 
+/**
+ * Type definition for GolemBase wallet actions that enable writing operations
+ * to the blockchain. These methods handle transaction creation and submission.
+ * 
+ * @public
+ */
 export type GolemBaseWalletActions = {
+  /**
+   * Create and submit a raw storage transaction with pre-encoded payload.
+   * This is a low-level method used internally by higher-level operations.
+   */
   createRawStorageTransaction(
     payload: Hex,
     gas: bigint | undefined,
@@ -121,6 +152,10 @@ export type GolemBaseWalletActions = {
     maxPriorityFeePerGas: bigint | undefined,
   ): Promise<Hex>
 
+  /**
+   * Send a GolemBase transaction with entity operations and return the transaction hash.
+   * This method submits the transaction but doesn't wait for confirmation.
+   */
   sendGolemBaseTransaction(
     creates?: GolemBaseCreate[],
     updates?: GolemBaseUpdate[],
@@ -131,6 +166,10 @@ export type GolemBaseWalletActions = {
     maxPriorityFeePerGas?: bigint,
   ): Promise<Hex>
 
+  /**
+   * Send a GolemBase transaction and wait for the blockchain receipt.
+   * This method provides complete transaction lifecycle handling with error reporting.
+   */
   sendGolemBaseTransactionAndWaitForReceipt(
     creates?: GolemBaseCreate[],
     updates?: GolemBaseUpdate[],
@@ -152,7 +191,14 @@ export type AllActions<
   WalletActions<Chain, Account> &
   GolemBaseActions
 
+/**
+ * Interface for the internal read-only GolemBase client providing access to
+ * both HTTP and WebSocket connections for querying blockchain data.
+ * 
+ * @public
+ */
 export interface GolemBaseROClient {
+  /** HTTP client for making JSON-RPC calls and reading GolemBase data */
   httpClient: Client<
     HttpTransport,
     Chain,
@@ -161,6 +207,7 @@ export interface GolemBaseROClient {
     PublicActions<HttpTransport, Chain, Account | undefined> & GolemBaseActions
   >
 
+  /** WebSocket client for real-time event monitoring and subscriptions */
   wsClient: Client<
     WebSocketTransport,
     Chain,
@@ -170,7 +217,14 @@ export interface GolemBaseROClient {
   >
 }
 
+/**
+ * Interface for the internal full GolemBase client extending read-only capabilities
+ * with wallet functionality for transaction signing and submission.
+ * 
+ * @public
+ */
 export interface GolemBaseClient extends GolemBaseROClient {
+  /** Wallet client for signing and sending transactions to GolemBase */
   walletClient: Client<
     HttpTransport | CustomTransport,
     Chain,
@@ -182,6 +236,18 @@ export interface GolemBaseClient extends GolemBaseROClient {
   >
 }
 
+/**
+ * Create an HTTP client for GolemBase with extended GolemBase-specific actions.
+ * 
+ * This function creates a viem public client configured for the GolemBase chain
+ * and extends it with custom RPC methods for interacting with GolemBase entities.
+ * 
+ * @param rpcUrl - The HTTP RPC endpoint URL for the GolemBase network
+ * @param chain - The chain configuration for the GolemBase network
+ * @returns A configured HTTP client with GolemBase actions
+ * 
+ * @internal
+ */
 function mkHttpClient(rpcUrl: string, chain: Chain): Client<
   HttpTransport,
   Chain,
@@ -252,6 +318,18 @@ function mkHttpClient(rpcUrl: string, chain: Chain): Client<
   }))
 }
 
+/**
+ * Create a WebSocket client for GolemBase for real-time event monitoring.
+ * 
+ * This function creates a viem public client configured to connect via WebSocket
+ * for subscribing to blockchain events and real-time updates.
+ * 
+ * @param wsUrl - The WebSocket RPC endpoint URL for the GolemBase network
+ * @param chain - The chain configuration for the GolemBase network
+ * @returns A configured WebSocket client for event subscriptions
+ * 
+ * @internal
+ */
 function mkWebSocketClient(wsUrl: string, chain: Chain):
   PublicClient<WebSocketTransport, Chain, Account | undefined, RpcSchema> {
   return createPublicClient<WebSocketTransport, Chain, Account | undefined, RpcSchema>({
@@ -260,6 +338,19 @@ function mkWebSocketClient(wsUrl: string, chain: Chain):
   })
 }
 
+/**
+ * Create a wallet client for GolemBase with transaction signing capabilities.
+ * 
+ * This function creates a wallet client that can sign and submit transactions
+ * to GolemBase. It supports both private key accounts and external wallet providers.
+ * 
+ * @param accountData - Either a private key or external wallet provider for signing
+ * @param chain - The chain configuration for the GolemBase network
+ * @param log - Logger instance for debugging transaction operations
+ * @returns A configured wallet client with GolemBase transaction actions
+ * 
+ * @internal
+ */
 async function mkWalletClient(
   accountData: AccountData,
   chain: Chain,
@@ -297,6 +388,15 @@ async function mkWalletClient(
     })
   }
 
+  /**
+   * Create RLP-encoded payload for GolemBase transactions.
+   * 
+   * This internal function converts GolemBase transaction operations into
+   * the binary format expected by the GolemBase storage contract.
+   * 
+   * @param tx - The transaction containing create, update, delete, and extend operations
+   * @returns Hex-encoded RLP payload ready for blockchain submission
+   */
   function createPayload(tx: GolemBaseTransaction): Hex {
     function formatAnnotation<
       T extends string | number | bigint | boolean
@@ -426,6 +526,19 @@ async function mkWalletClient(
   }))
 }
 
+/**
+ * Create a viem chain configuration for the GolemBase network.
+ * 
+ * This function defines the chain parameters needed by viem to interact
+ * with the GolemBase L2 network, including RPC endpoints and network metadata.
+ * 
+ * @param chainId - The numeric chain ID of the GolemBase network
+ * @param rpcUrl - The HTTP RPC endpoint URL
+ * @param wsUrl - The WebSocket RPC endpoint URL
+ * @returns A viem Chain configuration object
+ * 
+ * @internal
+ */
 function createGolemBaseChain(
   chainId: number,
   rpcUrl: string,
