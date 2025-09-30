@@ -1,11 +1,11 @@
 {
-  "name": "golem-base-sdk",
-  "version": "0.1.16",
+  "name": "arkiv-sdk",
+  "version": "0.1.17",
   "description": "",
-  "homepage": "https://golem-base.github.io/typescript-sdk/",
+  "homepage": "https://Arkiv-Network/arkiv-sdk-js/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Golem-Base/typescript-sdk"
+    "url": "git+https://Arkiv-Network/arkiv-sdk-js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

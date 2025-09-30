@@ -11,14 +11,14 @@ import { Wallet, getBytes } from "ethers"
 import {
   createClient,
   formatEther,
-  type GolemBaseCreate,
+  type ArkivCreate,
   Annotation,
   Tagged,
   type AccountData,
-} from "golem-base-sdk"
+} from "arkiv-sdk"
 
-// Path to a golembase wallet
-const walletPath = join(xdg.config(), 'golembase', 'wallet.json');
+// Path to a arkiv wallet
+const walletPath = join(xdg.config(), 'arkiv', 'wallet.json');
 const keystore = readFileSync(walletPath, 'utf8');
 
 /**
@@ -87,15 +87,15 @@ async function main() {
     demo: await createClient(
       1337,
       key,
-      'https://api.golembase.demo.golem-base.io',
-      'wss://ws-api.golembase.demo.golem-base.io',
+      'https://api.arkiv.demo.arkiv.io',
+      'wss://ws-api.arkiv.demo.arkiv.io',
       log,
     ),
     kaolin: await createClient(
       600606,
       key,
-      'https://rpc.kaolin.holesky.golem-base.io',
-      'wss://ws.rpc.kaolin.holesky.golem-base.io',
+      'https://rpc.kaolin.holesky.arkiv.io',
+      'wss://ws.rpc.kaolin.holesky.arkiv.io',
       log,
     ),
   }.kaolin
@@ -135,7 +135,7 @@ async function main() {
   log.info("*********************")
   log.info("")
 
-  const creates: GolemBaseCreate[] = [
+  const creates: ArkivCreate[] = [
     {
       data: encoder.encode("foo"),
       btl: 25,

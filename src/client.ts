@@ -6,12 +6,12 @@ import {
 
 import {
   type Hex,
-  type GolemBaseCreate,
-  type GolemBaseUpdate,
-  type GolemBaseExtend,
+  type ArkivCreate,
+  type ArkivUpdate,
+  type ArkivExtend,
   type EntityMetaData,
   type AccountData,
-  golemBaseABI,
+  arkivABI,
 } from "."
 import {
   decodeEventLog,
@@ -22,7 +22,7 @@ import {
 } from "viem";
 
 /**
- * Receipt returned when successfully creating an entity in GolemBase
+ * Receipt returned when successfully creating an entity in Arkiv
  * @public
  */
 export type CreateEntityReceipt = {
@@ -33,7 +33,7 @@ export type CreateEntityReceipt = {
 }
 
 /**
- * Receipt returned when successfully updating an entity in GolemBase
+ * Receipt returned when successfully updating an entity in Arkiv
  * @public
  */
 export type UpdateEntityReceipt = {
@@ -44,7 +44,7 @@ export type UpdateEntityReceipt = {
 }
 
 /**
- * Receipt returned when successfully deleting an entity in GolemBase
+ * Receipt returned when successfully deleting an entity in Arkiv
  * @public
  */
 export type DeleteEntityReceipt = {
@@ -53,7 +53,7 @@ export type DeleteEntityReceipt = {
 }
 
 /**
- * Receipt returned when successfully extending an entity's BTL (Block-to-Live) in GolemBase
+ * Receipt returned when successfully extending an entity's BTL (Block-to-Live) in Arkiv
  * @public
  */
 export type ExtendEntityReceipt = {
@@ -66,8 +66,8 @@ export type ExtendEntityReceipt = {
 }
 
 /**
- * Generic interface for GolemBase clients providing core functionality for interacting
- * with the Golem Base L2 network for decentralized data storage and management.
+ * Generic interface for Arkiv clients providing core functionality for interacting
+ * with the Arkiv L2 network for decentralized data storage and management.
  * 
  * @template Internal - The type of the internal client implementation
  * @public
@@ -86,13 +86,13 @@ interface GenericClient<Internal> {
   getRawClient(): Internal
 
   /**
-   * Returns the total number of entities stored in GolemBase.
+   * Returns the total number of entities stored in Arkiv.
    * @returns A promise that resolves to the total count of entities.
    */
   getEntityCount(): Promise<number>
 
   /**
-   * Returns all entity keys stored in GolemBase.
+   * Returns all entity keys stored in Arkiv.
    * @returns A promise that resolves to an array of entity keys (Hex[]).
    */
   getAllEntityKeys(): Promise<Hex[]>
@@ -112,8 +112,8 @@ interface GenericClient<Internal> {
    getStorageValue(key: Hex): Promise<Uint8Array>
 
   /**
-   * Queries entities in GolemBase using annotations or metadata filters.
-   * @param query A query string in the GolemBase filter syntax.
+   * Queries entities in Arkiv using annotations or metadata filters.
+   * @param query A query string in the Arkiv filter syntax.
    * @returns A promise that resolves to an array of matching entity keys.
    */
    queryEntities(query: string): Promise<{ entityKey: Hex, storageValue: Uint8Array }[]>
@@ -133,7 +133,7 @@ interface GenericClient<Internal> {
    getEntityMetaData(key: Hex): Promise<EntityMetaData>
 
   /**
-   * Install callbacks that will be invoked for every GolemBase transaction
+   * Install callbacks that will be invoked for every Arkiv transaction
    *
    * @param args.fromBlock - The starting block, events trigger the callbacks starting from this block
    * @param args.onCreated - A callback that's invoked whenever entities are created
@@ -160,10 +160,10 @@ interface GenericClient<Internal> {
 }
 
 /**
- * Read-only client interface for GolemBase providing access to query operations
+ * Read-only client interface for Arkiv providing access to query operations
  * without the ability to modify data on the blockchain.
  * 
- * Use this client when you only need to read data from GolemBase and don't require
+ * Use this client when you only need to read data from Arkiv and don't require
  * transaction capabilities.
  * 
  * @public
@@ -174,16 +174,16 @@ interface GenericClient<Internal> {
  * const entities = await roClient.getAllEntityKeys();
  * ```
  */
-export interface GolemBaseROClient extends GenericClient<internal.GolemBaseROClient> { }
+export interface ArkivROClient extends GenericClient<internal.ArkivROClient> { }
 
 /**
- * The GolemBaseClient interface provides both read and write operations
- * for interacting with the Golem Base L2 network.
+ * The ArkivClient interface provides both read and write operations
+ * for interacting with the Arkiv L2 network.
  * 
  * This client can perform CRUD operations on entities, manage their BTL (Block-to-Live),
  * and handle transactions on the blockchain.
  * 
- * This interface extends the GolemBaseROClient interface, inheriting all its read-only methods.
+ * This interface extends the ArkivROClient interface, inheriting all its read-only methods.
  *
  * @public
  * @example
@@ -193,7 +193,7 @@ export interface GolemBaseROClient extends GenericClient<internal.GolemBaseROCli
  * // Create entities with annotations
  * const receipts = await client.createEntities([
  *   {
- *     data: new TextEncoder().encode("Hello, GolemBase!"),
+ *     data: new TextEncoder().encode("Hello, Arkiv!"),
  *     btl: 1000,
  *     stringAnnotations: [new Annotation("type", "message")],
  *     numericAnnotations: []
@@ -201,7 +201,7 @@ export interface GolemBaseROClient extends GenericClient<internal.GolemBaseROCli
  * ]);
  * ```
  */
-export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient> {
+export interface ArkivClient extends GenericClient<internal.ArkivClient> {
   /**
    * Get the Ethereum address of the owner of the Ethereum account used by this client
    * 
@@ -219,7 +219,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   getOwnerAddress(): Promise<Hex>
 
   /**
-   * Send a combined transaction to GolemBase that can include multiple operations:
+   * Send a combined transaction to Arkiv that can include multiple operations:
    * create, update, delete, and extend operations in a single atomic transaction.
    * 
    * @param creates - Array of create operations to include in this transaction
@@ -257,10 +257,10 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
    */
 
   sendTransaction(
-    creates?: GolemBaseCreate[],
-    updates?: GolemBaseUpdate[],
+    creates?: ArkivCreate[],
+    updates?: ArkivUpdate[],
     deletes?: Hex[],
-    extensions?: GolemBaseExtend[],
+    extensions?: ArkivExtend[],
     args?: {
       txHashCallback?: (txHash: Hex) => void,
       gas?: bigint,
@@ -275,7 +275,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   }>
 
   /**
-   * Create one or more new entities in GolemBase with specified data and annotations.
+   * Create one or more new entities in Arkiv with specified data and annotations.
    * 
    * Each entity is stored with a configurable BTL (Block-to-Live) that determines when
    * the entity will automatically expire and be removed from the network.
@@ -311,7 +311,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
    * ```
    */
   createEntities(
-    creates: GolemBaseCreate[],
+    creates: ArkivCreate[],
     args?: {
       txHashCallback?: (txHash: Hex) => void,
       gas?: bigint,
@@ -321,7 +321,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<CreateEntityReceipt[]>
 
   /**
-   * Update one or more existing entities in GolemBase with new data and annotations.
+   * Update one or more existing entities in Arkiv with new data and annotations.
    * 
    * Updates replace the entire entity content, including data and annotations.
    * The BTL can also be modified to extend or reduce the entity's lifetime.
@@ -350,7 +350,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
    * ```
    */
   updateEntities(
-    updates: GolemBaseUpdate[],
+    updates: ArkivUpdate[],
     args?: {
       txHashCallback?: (txHash: Hex) => void,
       gas?: bigint,
@@ -360,7 +360,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<UpdateEntityReceipt[]>
 
   /**
-   * Deletes one or more entities from GolemBase permanently.
+   * Deletes one or more entities from Arkiv permanently.
    * 
    * Only the entity owner can delete their entities. Deleted entities cannot be recovered
    * and their storage is immediately freed on the network.
@@ -398,7 +398,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
   ): Promise<DeleteEntityReceipt[]>
 
   /**
-   * Extends the BTL (Block-to-Live) of one or more entities in GolemBase.
+   * Extends the BTL (Block-to-Live) of one or more entities in Arkiv.
    * 
    * This operation increases the lifetime of entities by adding additional blocks
    * to their expiration time, preventing them from being automatically deleted.
@@ -431,7 +431,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
    */
 
   extendEntities(
-    extensions: GolemBaseExtend[],
+    extensions: ArkivExtend[],
     args?: {
       txHashCallback?: (txHash: Hex) => void,
       gas?: bigint,
@@ -442,7 +442,7 @@ export interface GolemBaseClient extends GenericClient<internal.GolemBaseClient>
 }
 
 /**
- * Parse transaction logs from GolemBase operations to extract receipts for different entity operations.
+ * Parse transaction logs from Arkiv operations to extract receipts for different entity operations.
  * 
  * This internal function processes blockchain event logs and categorizes them into the appropriate
  * operation types (create, update, delete, extend) based on the event signatures.
@@ -478,12 +478,12 @@ function parseTransactionLogs(
     }
     log.debug("padded data:", paddedData)
     const parsed = decodeEventLog({
-      abi: golemBaseABI,
+      abi: arkivABI,
       data: paddedData,
       topics: txlog.topics
     })
     switch (parsed.eventName) {
-      case "GolemBaseStorageEntityCreated": {
+      case "ArkivStorageEntityCreated": {
         log.debug(parsed.args)
         return {
           ...receipts,
@@ -493,7 +493,7 @@ function parseTransactionLogs(
           }]),
         }
       }
-      case "GolemBaseStorageEntityUpdated": {
+      case "ArkivStorageEntityUpdated": {
         return {
           ...receipts,
           updateEntitiesReceipts: receipts.updateEntitiesReceipts.concat([{
@@ -502,7 +502,7 @@ function parseTransactionLogs(
           }]),
         }
       }
-      case "GolemBaseStorageEntityBTLExtended": {
+      case "ArkivStorageEntityBTLExtended": {
         return {
           ...receipts,
           extendEntitiesReceipts: receipts.extendEntitiesReceipts.concat([{
@@ -512,7 +512,7 @@ function parseTransactionLogs(
           }]),
         }
       }
-      case "GolemBaseStorageEntityDeleted": {
+      case "ArkivStorageEntityDeleted": {
         return {
           ...receipts,
           deleteEntitiesReceipts: receipts.deleteEntitiesReceipts.concat([{
@@ -533,7 +533,7 @@ function parseTransactionLogs(
 
 /**
  * Create a generic client wrapper that provides common functionality for both
- * read-only and full GolemBase clients.
+ * read-only and full Arkiv clients.
  * 
  * This factory function wraps the internal client with high-level methods that handle
  * common operations like querying entities, watching blockchain events, and managing
@@ -542,18 +542,18 @@ function parseTransactionLogs(
  * @template Internal - Type of the internal client (read-only or full client)
  * @param client - The internal client instance to wrap
  * @param logger - Logger instance for debugging and monitoring operations
- * @returns A generic client with common GolemBase functionality
+ * @returns A generic client with common Arkiv functionality
  * 
  * @internal
  */
-function createGenericClient<Internal extends internal.GolemBaseROClient>(
+function createGenericClient<Internal extends internal.ArkivROClient>(
   client: Internal,
   logger: Logger<ILogObj>
 ): GenericClient<Internal> {
   const log = logger.getSubLogger({ name: "generic client" });
 
   // Log the event hashes in case we need to debug event log parsing
-  for (let value of golemBaseABI) {
+  for (let value of arkivABI) {
     log.debug("Calculated the following event signature:", value.name, "->", toEventHash(value))
   }
 
@@ -613,7 +613,7 @@ function createGenericClient<Internal extends internal.GolemBaseROClient>(
       const unsubscribe = c.watchEvent({
         address: internal.storageAddress,
         fromBlock: args.fromBlock,
-        events: golemBaseABI,
+        events: arkivABI,
         onLogs: logs => {
           log.debug("watchLogs, got logs: ", logs)
           const {
@@ -638,7 +638,7 @@ function createGenericClient<Internal extends internal.GolemBaseROClient>(
 }
 
 /**
- * Creates a read-only client for querying a golem-base op-geth node.
+ * Creates a read-only client for querying an arkiv op-geth node.
  *
  * This client can fetch metadata, search for keys, and inspect the current state, but cannot write to the blockchain.
  *
@@ -646,7 +646,7 @@ function createGenericClient<Internal extends internal.GolemBaseROClient>(
  * @param rpcUrl The HTTP endpoint for RPC requests.
  * @param wsUrl The WebSocket endpoint for listening to events.
  * @param logger A logger instance. Defaults to a silent logger if omitted.
- * @returns An instance of GolemBaseROClient.
+ * @returns An instance of ArkivROClient.
  */
 export function createROClient(
   chainId: number,
@@ -656,29 +656,29 @@ export function createROClient(
     type: "hidden",
     hideLogPositionForProduction: true,
   })
-): GolemBaseROClient {
+): ArkivROClient {
   const iClient = internal.createROClient(chainId, rpcUrl, wsUrl, logger)
   const baseClient = createGenericClient(iClient, logger)
 
   return {
     ...baseClient,
-    getRawClient(): internal.GolemBaseROClient {
+    getRawClient(): internal.ArkivROClient {
       return iClient
     },
   }
 }
 
 /**
- * Creates a read-write client for a golem-base op-geth node. 
+ * Creates a read-write client for a arkiv op-geth node. 
  * This client supports all available operations, including writing
  * new entities and fetching metadata.
  * @param chainId The numeric chain ID of the Ethereum-compatible network you're connecting to.
  * @param accountData An object containing the private key or account credentials for signing transactions.
- * @param rpcUrl The HTTP endpoint of the golem-base op-geth node.
+ * @param rpcUrl The HTTP endpoint of the arkiv op-geth node.
  * @param wsUrl The WebSocket endpoint of the same node, used for event listening or subscriptions.
  * @param logger A pino-like logger instance for structured logs. Defaults to a minimal hidden logger if not provided.
  *
- * @returns A Promise that resolves to a GolemBaseClient instance.
+ * @returns A Promise that resolves to a ArkivClient instance.
  */
 export async function createClient(
   chainId: number,
@@ -689,7 +689,7 @@ export async function createClient(
     type: "hidden",
     hideLogPositionForProduction: true,
   })
-): Promise<GolemBaseClient> {
+): Promise<ArkivClient> {
 
   const iClient = await internal.createClient(chainId, accountData, rpcUrl, wsUrl, logger)
   const baseClient = createGenericClient(iClient, logger)
@@ -708,11 +708,11 @@ export async function createClient(
     },
 
     async sendTransaction(
-      this: GolemBaseClient,
-      creates: GolemBaseCreate[] = [],
-      updates: GolemBaseUpdate[] = [],
+      this: ArkivClient,
+      creates: ArkivCreate[] = [],
+      updates: ArkivUpdate[] = [],
       deletes: Hex[] = [],
-      extensions: GolemBaseExtend[] = [],
+      extensions: ArkivExtend[] = [],
       args: {
         txHashCallback?: (txHash: Hex) => void,
         gas?: bigint,
@@ -725,7 +725,7 @@ export async function createClient(
       deleteEntitiesReceipts: DeleteEntityReceipt[],
       extendEntitiesReceipts: ExtendEntityReceipt[],
     }> {
-      const receipt = await iClient.walletClient.sendGolemBaseTransactionAndWaitForReceipt(
+      const receipt = await iClient.walletClient.sendArkivTransactionAndWaitForReceipt(
         creates, updates, deletes, extensions, args
       )
       log.debug("Got receipt:", receipt)
@@ -736,8 +736,8 @@ export async function createClient(
     },
 
     async createEntities(
-      this: GolemBaseClient,
-      creates: GolemBaseCreate[],
+      this: ArkivClient,
+      creates: ArkivCreate[],
       args: {
         txHashCallback?: (txHash: Hex) => void,
         gas?: bigint,
@@ -751,8 +751,8 @@ export async function createClient(
     },
 
     async updateEntities(
-      this: GolemBaseClient,
-      updates: GolemBaseUpdate[],
+      this: ArkivClient,
+      updates: ArkivUpdate[],
       args: {
         txHashCallback?: (txHash: Hex) => void,
         gas?: bigint,
@@ -766,7 +766,7 @@ export async function createClient(
     },
 
     async deleteEntities(
-      this: GolemBaseClient,
+      this: ArkivClient,
       deletes: Hex[],
       args: {
         txHashCallback?: (txHash: Hex) => void,
@@ -781,8 +781,8 @@ export async function createClient(
     },
 
     async extendEntities(
-      this: GolemBaseClient,
-      extensions: GolemBaseExtend[],
+      this: ArkivClient,
+      extensions: ArkivExtend[],
       args: {
         txHashCallback?: (txHash: Hex) => void,
         gas?: bigint,

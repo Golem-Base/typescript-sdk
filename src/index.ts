@@ -1,12 +1,12 @@
 /**
- * @fileoverview GolemBase TypeScript SDK - Main entry point for interacting with the Golem Base L2 network.
+ * @fileoverview Arkiv TypeScript SDK - Main entry point for interacting with the Arkiv L2 network.
  * 
  * This module provides comprehensive functionality for decentralized data storage and management
- * on GolemBase, including entity CRUD operations, real-time event monitoring, and blockchain interactions.
+ * on Arkiv, including entity CRUD operations, real-time event monitoring, and blockchain interactions.
  * 
- * @author Golem Base Team
+ * @author Arkiv Team
  * @version 1.0.0
- * @see {@link https://docs.golemdb.io/} - Official GolemBase Documentation
+ * @see {@link https://docs.arkiv.network/} - Official Arkiv Documentation
  */
 
 import {
@@ -25,60 +25,60 @@ export * as internal from "./internal/client"
 export { formatEther } from "viem"
 
 /**
- * The Application Binary Interface (ABI) for GolemBase storage contract events.
+ * The Application Binary Interface (ABI) for Arkiv storage contract events.
  * 
- * This ABI defines the event signatures emitted by the GolemBase storage contract
+ * This ABI defines the event signatures emitted by the Arkiv storage contract
  * for all entity lifecycle operations. These events are used to track entity creation,
  * updates, deletions, and BTL extensions on the blockchain.
  * 
  * @public
  */
-export const golemBaseABI = parseAbi([
-  "event GolemBaseStorageEntityCreated(uint256 indexed entityKey, uint256 expirationBlock)",
-  "event GolemBaseStorageEntityUpdated(uint256 indexed entityKey, uint256 expirationBlock)",
-  "event GolemBaseStorageEntityDeleted(uint256 indexed entityKey)",
-  "event GolemBaseStorageEntityBTLExtended(uint256 indexed entityKey, uint256 oldExpirationBlock, uint256 newExpirationBlock)",
+export const arkivABI = parseAbi([
+  "event ArkivStorageEntityCreated(uint256 indexed entityKey, uint256 expirationBlock)",
+  "event ArkivStorageEntityUpdated(uint256 indexed entityKey, uint256 expirationBlock)",
+  "event ArkivStorageEntityDeleted(uint256 indexed entityKey)",
+  "event ArkivStorageEntityBTLExtended(uint256 indexed entityKey, uint256 oldExpirationBlock, uint256 newExpirationBlock)",
 ])
 
 /**
- * Pre-computed event signature hash for GolemBaseStorageEntityCreated events.
+ * Pre-computed event signature hash for ArkivStorageEntityCreated events.
  * Used for efficient event filtering and monitoring in blockchain queries.
  * @public
  */
-export const golemBaseStorageEntityCreatedSignature =
-  toEventHash(getAbiItem({ abi: golemBaseABI, name: "GolemBaseStorageEntityCreated" }))
+export const arkivStorageEntityCreatedSignature =
+  toEventHash(getAbiItem({ abi: arkivABI, name: "ArkivStorageEntityCreated" }))
 
 /**
- * Pre-computed event signature hash for GolemBaseStorageEntityUpdated events.
+ * Pre-computed event signature hash for ArkivStorageEntityUpdated events.
  * Used for efficient event filtering and monitoring in blockchain queries.
  * @public
  */
-export const golemBaseStorageEntityUpdatedSignature =
-  toEventHash(getAbiItem({ abi: golemBaseABI, name: "GolemBaseStorageEntityUpdated" }))
+export const arkivStorageEntityUpdatedSignature =
+  toEventHash(getAbiItem({ abi: arkivABI, name: "ArkivStorageEntityUpdated" }))
 
 /**
- * Pre-computed event signature hash for GolemBaseStorageEntityDeleted events.
+ * Pre-computed event signature hash for ArkivStorageEntityDeleted events.
  * Used for efficient event filtering and monitoring in blockchain queries.
  * @public
  */
-export const golemBaseStorageEntityDeletedSignature =
-  toEventHash(getAbiItem({ abi: golemBaseABI, name: "GolemBaseStorageEntityDeleted" }))
+export const arkivStorageEntityDeletedSignature =
+  toEventHash(getAbiItem({ abi: arkivABI, name: "ArkivStorageEntityDeleted" }))
 
 /**
- * Pre-computed event signature hash for GolemBaseStorageEntityBTLExtended events.
+ * Pre-computed event signature hash for ArkivStorageEntityBTLExtended events.
  * Used for efficient event filtering and monitoring in blockchain queries.
  * @public
  */
-export const golemBaseStorageEntityBTLExtendedSignature =
-  toEventHash(getAbiItem({ abi: golemBaseABI, name: "GolemBaseStorageEntityBTLExtended" }))
+export const arkivStorageEntityBTLExtendedSignature =
+  toEventHash(getAbiItem({ abi: arkivABI, name: "ArkivStorageEntityBTLExtended" }))
 
 
 /**
- * Generic annotation class for attaching metadata to GolemBase entities.
+ * Generic annotation class for attaching metadata to Arkiv entities.
  * 
  * Annotations provide a key-value mechanism for adding searchable metadata
  * to entities, enabling efficient querying and categorization of stored data.
- * They are essential for building database-like functionality on top of GolemBase.
+ * They are essential for building database-like functionality on top of Arkiv.
  * 
  * @template V - The type of the annotation value (string, number, etc.)
  * @public
@@ -155,7 +155,7 @@ export class Tagged<Tag, Data> {
 /**
  * Account data discriminated union for different authentication methods.
  * 
- * GolemBase supports two primary authentication mechanisms:
+ * Arkiv supports two primary authentication mechanisms:
  * - Private key accounts for server-side applications and testing
  * - Ethereum provider integration for browser wallets (MetaMask, WalletConnect, etc.)
  * 
@@ -184,7 +184,7 @@ export type AccountData =
   Tagged<"ethereumprovider", { request(...args: any): Promise<any> }>
 
 /**
- * Type representing hexadecimal-encoded values used throughout the GolemBase protocol.
+ * Type representing hexadecimal-encoded values used throughout the Arkiv protocol.
  * 
  * This type ensures type safety for Ethereum addresses, entity keys, transaction hashes,
  * and other blockchain-related hexadecimal values that must start with '0x'.
@@ -200,7 +200,7 @@ export type AccountData =
 export type Hex = `0x${string}`
 
 /**
- * Specification for creating new entities in GolemBase.
+ * Specification for creating new entities in Arkiv.
  * 
  * This type defines all the parameters needed to create a new entity,
  * including the data payload, time-to-live (BTL), and metadata annotations
@@ -210,8 +210,8 @@ export type Hex = `0x${string}`
  * 
  * @example
  * ```typescript
- * const createSpec: GolemBaseCreate = {
- *   data: new TextEncoder().encode(JSON.stringify({ message: "Hello GolemBase" })),
+ * const createSpec: ArkivCreate = {
+ *   data: new TextEncoder().encode(JSON.stringify({ message: "Hello Arkiv" })),
  *   btl: 1000,
  *   stringAnnotations: [
  *     new Annotation("type", "message"),
@@ -224,7 +224,7 @@ export type Hex = `0x${string}`
  * };
  * ```
  */
-export type GolemBaseCreate = {
+export type ArkivCreate = {
   /** The binary data to store in the entity */
   readonly data: Uint8Array,
   /** Block-to-Live: number of blocks after which the entity expires */
@@ -235,7 +235,7 @@ export type GolemBaseCreate = {
   readonly numericAnnotations: NumericAnnotation[],
 }
 /**
- * Specification for updating existing entities in GolemBase.
+ * Specification for updating existing entities in Arkiv.
  * 
  * Updates replace the entire entity content including data and annotations.
  * The entity owner can modify the BTL to extend or reduce the entity's lifetime.
@@ -245,7 +245,7 @@ export type GolemBaseCreate = {
  * 
  * @example
  * ```typescript
- * const updateSpec: GolemBaseUpdate = {
+ * const updateSpec: ArkivUpdate = {
  *   entityKey: "0x1234567890abcdef12345678",
  *   data: new TextEncoder().encode(JSON.stringify({ message: "Updated content" })),
  *   btl: 2000,
@@ -259,7 +259,7 @@ export type GolemBaseCreate = {
  * };
  * ```
  */
-export type GolemBaseUpdate = {
+export type ArkivUpdate = {
   /** The hexadecimal key of the entity to update */
   readonly entityKey: Hex,
   /** The new binary data to store in the entity */
@@ -282,20 +282,20 @@ export type GolemBaseUpdate = {
  * 
  * @example
  * ```typescript
- * const extendSpec: GolemBaseExtend = {
+ * const extendSpec: ArkivExtend = {
  *   entityKey: "0x1234567890abcdef12345678",
  *   numberOfBlocks: 500
  * };
  * ```
  */
-export type GolemBaseExtend = {
+export type ArkivExtend = {
   /** The hexadecimal key of the entity to extend */
   readonly entityKey: Hex,
   /** Number of additional blocks to add to the entity's current expiration */
   readonly numberOfBlocks: number,
 }
 /**
- * Comprehensive transaction specification for atomic GolemBase operations.
+ * Comprehensive transaction specification for atomic Arkiv operations.
  * 
  * This type allows combining multiple entity operations (create, update, delete, extend)
  * into a single atomic blockchain transaction. All operations within a transaction
@@ -305,7 +305,7 @@ export type GolemBaseExtend = {
  * 
  * @example
  * ```typescript
- * const transaction: GolemBaseTransaction = {
+ * const transaction: ArkivTransaction = {
  *   creates: [{
  *     data: new TextEncoder().encode("New entity 1"),
  *     btl: 1000,
@@ -327,19 +327,19 @@ export type GolemBaseExtend = {
  * };
  * ```
  */
-export type GolemBaseTransaction = {
+export type ArkivTransaction = {
   /** Array of entity creation specifications */
-  readonly creates?: GolemBaseCreate[],
+  readonly creates?: ArkivCreate[],
   /** Array of entity update specifications */
-  readonly updates?: GolemBaseUpdate[],
+  readonly updates?: ArkivUpdate[],
   /** Array of entity keys to delete */
   readonly deletes?: Hex[],
   /** Array of BTL extension specifications */
-  readonly extensions?: GolemBaseExtend[],
+  readonly extensions?: ArkivExtend[],
 }
 
 /**
- * Complete metadata information for an entity stored in GolemBase.
+ * Complete metadata information for an entity stored in Arkiv.
  * 
  * This type contains all the information about an entity including its expiration,
  * data payload, annotations, and ownership details. It's returned by query operations

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>GolemBase in the browser</title>
-    <script src="https://unpkg.com/golem-base-sdk/dist/golem-base-sdk.min.js"></script>
+    <title>Arkiv in the browser</title>
+    <script src="https://unpkg.com/arkiv-sdk/dist/arkiv-sdk.min.js"></script>
     <!--
       We cannot re-export this from our bundle since we need the browser version
       which is slightly different.
@@ -26,7 +26,7 @@
         (event) => { // EIP6963AnnounceProviderEvent
           const wallet = event.detail
 
-          log.info("Creating golem-base client...");
+          log.info("Creating arkiv client...");
           let unsubscribe
           (async () => {
 
@@ -42,11 +42,11 @@
             }
 
             try {
-              const client = await golem_base_sdk.createClient(
+              const client = await arkiv_base_sdk.createClient(
                 1337,
-                new golem_base_sdk.Tagged("ethereumprovider", wallet.provider),
-                'https://api.golembase.demo.golem-base.io',
-                'wss://ws-api.golembase.demo.golem-base.io',
+                new arkiv_base_sdk.Tagged("ethereumprovider", wallet.provider),
+                'https://api.arkiv.demo.arkiv.io',
+                'wss://ws-api.arkiv.demo.arkiv.io',
                 log
               );
 
@@ -81,8 +81,8 @@
               const [receipt] = await client.createEntities([{
                 data: utf8Encode.encode("foo"),
                 btl: 25,
-                stringAnnotations: [new golem_base_sdk.Annotation("key", "foo")],
-                numericAnnotations: [new golem_base_sdk.Annotation("ix", 1)]
+                stringAnnotations: [new arkiv_base_sdk.Annotation("key", "foo")],
+                numericAnnotations: [new arkiv_base_sdk.Annotation("ix", 1)]
               }])
 
               log.debug(receipt)
@@ -95,8 +95,8 @@
                 entityKey: receipt.entityKey,
                 data: utf8Encode.encode("bar"),
                 btl: 50,
-                stringAnnotations: [new golem_base_sdk.Annotation("key", "foobar")],
-                numericAnnotations: [new golem_base_sdk.Annotation("ix", 10)]
+                stringAnnotations: [new arkiv_base_sdk.Annotation("key", "foobar")],
+                numericAnnotations: [new arkiv_base_sdk.Annotation("ix", 10)]
               }])
               log.info("Updated entity:", await client.getEntityMetaData(updateReceipt.entityKey))
 
