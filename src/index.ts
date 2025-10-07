@@ -18,6 +18,9 @@ import {
 // Export all high-level client functionality
 export * from "./client"
 
+// Export utility functions for validation and common operations
+export * from "./utils"
+
 // Export internal implementation for advanced use cases
 export * as internal from "./internal/client"
 
@@ -109,6 +112,60 @@ export class Annotation<V> {
   constructor(key: string, value: V) {
     this.key = key
     this.value = value
+  }
+
+  /**
+   * Creates a string-valued annotation.
+   * 
+   * @param key - The annotation key
+   * @param value - The string value
+   * @returns A new StringAnnotation instance
+   * 
+   * @example
+   * ```typescript
+   * const typeAnnotation = Annotation.createString("type", "user-profile");
+   * ```
+   * 
+   * @public
+   */
+  static createString(key: string, value: string): StringAnnotation {
+    return new Annotation(key, value)
+  }
+
+  /**
+   * Creates a numeric-valued annotation.
+   * 
+   * @param key - The annotation key
+   * @param value - The numeric value
+   * @returns A new NumericAnnotation instance
+   * 
+   * @example
+   * ```typescript
+   * const priorityAnnotation = Annotation.createNumeric("priority", 1);
+   * ```
+   * 
+   * @public
+   */
+  static createNumeric(key: string, value: number): NumericAnnotation {
+    return new Annotation(key, value)
+  }
+
+  /**
+   * Creates a timestamp annotation with the current time.
+   * 
+   * @param key - The annotation key (defaults to "timestamp")
+   * @returns A new NumericAnnotation with current timestamp
+   * 
+   * @example
+   * ```typescript
+   * const timestampAnnotation = Annotation.createTimestamp();
+   * const customTimestamp = Annotation.createTimestamp("created_at");
+   * ```
+   * 
+   * @public
+   */
+  static createTimestamp(key: string = "timestamp"): NumericAnnotation {
+    return new Annotation(key, Date.now())
   }
 }
 
